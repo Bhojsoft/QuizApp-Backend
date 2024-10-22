@@ -125,7 +125,7 @@ exports.getTest = async (req, res) => {
 exports.getTestQuiz = async (req, res) => {
     try {
         const testId = req.params.id;
-        const test = await Test.findById(testId).select("-questions.correctAnswer");
+        const test = await Test.findById(testId);
 
         if (!test) {
             return res.status(404).json({ error: 'Test not found' });

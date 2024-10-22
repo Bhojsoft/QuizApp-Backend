@@ -22,9 +22,10 @@ app.use('/practicetest', practicetestRouter);
 const notificationRoutes = require("./routers/Notification.router");
 app.use("/notifications", notificationRoutes);
  
-const courseRoute = require("./routers/cource.router");
+const courseRoute = require("./routers/course.router");
 app.use("/course", courseRoute);
 
-
+// const reviewRoute= require("./routers/review.router");
+// app.use("/review", reviewRoute);
 
 module.exports = app;

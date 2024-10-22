@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const reviewSchema = require("./review.model");
 
 const courseShema = new mongoose.Schema(
   {
@@ -45,11 +46,13 @@ const courseShema = new mongoose.Schema(
     thumbnail_image: {
       type: String,
     },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', required: true },
    
     tags: {
       type: String,
       trim: true,
     },
+    reviews: [reviewSchema],
   },
   { timestamps: true }
 );

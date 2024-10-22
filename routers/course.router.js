@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const Course = require("../models/cource.model");
+const Course = require("../models/course.model");
 const multer = require("multer");
 const { ApiResponse } = require("../utils/ApiResponse");
 const { ApiError } = require("../utils/ApiError");
@@ -42,28 +42,15 @@ router.get("/", async (req, res, next) => {
 
     const courses = await Course.find()
       .sort({ createdAt: -1 })
-      .populate("category_id")
-      .populate("trainer_id", "f_Name l_Name role business_Name")
+      
+      .populate("createdBy", "name email")
       .limit(limit)
       .skip(skip);
 
     const coursesWithFullImageUrls = courses.map((course) => ({
       _id: course?._id,
-      category_name: course?.category_id?.category_name || "",
       course_name: course?.course_name || "",
       online_offline: course?.online_offline || "",
-      thumbnail_image: course?.thumbnail_image
-        ? `${baseUrl}/${course?.thumbnail_image?.replace(/\\/g, "/")}`
-        : "",
-      trainer_image: course?.trainer_id?.trainer_image
-        ? `${baseUrl}/${course?.trainer_id?.trainer_image?.replace(/\\/g, "/")}`
-        : "",
-      trainer_id: course?.trainer_id?._id,
-      business_Name: course?.trainer_id?.business_Name
-        ? course?.trainer_id?.business_Name
-        : `${course?.trainer_id?.f_Name || ""} ${
-            course?.trainer_id?.l_Name || ""
-          }`.trim() || "",
       course_rating: "",
       course_duration: Math.floor(
         Math.round(
@@ -74,7 +61,7 @@ router.get("/", async (req, res, next) => {
       ),
       course_price: course?.price || "",
       course_offer_prize: course?.offer_prize || "",
-      course_flag: course?.trainer_id?.role || "",
+    
     }));
 
     const totalCourses = await Course.countDocuments();
@@ -93,7 +80,7 @@ router.get("/", async (req, res, next) => {
 });
 
 router.post(
-  "/",
+  "/",authenticateToken,
   upload.fields([
     { name: "thumbnail_image", maxCount: 1 },
     { name: "gallary_image", maxCount: 1 },
@@ -116,6 +103,7 @@ router.post(
       thumbnail_image: req.files["thumbnail_image"]
         ? req.files["thumbnail_image"][0].path
         : "",
+        createdBy:req.user.userId
     });
 
     try {
