@@ -96,8 +96,9 @@ exports.getTopicsAndQuizzesBySubject = async (req, res) => {
 // Get a specific test details
 exports.getTest = async (req, res) => {
     try {
+        const baseUrl = req.protocol + "://" + req.get("host");
         const testId = req.params.id;
-        const test = await Test.findById(testId ).populate("createdBy" ,"name admin_image");
+        const test = await Test.findById(testId).populate("createdBy", "name admin_image");
 
         if (!test) {
             return res.status(404).json({ error: 'Test not found' });
@@ -110,8 +111,11 @@ exports.getTest = async (req, res) => {
             class: test.class,
             description: test.description,
             createdBy: test.createdBy.name,
-            admin_image:test.createdBy.admin_image,
-            sample_question: test.sample_question
+            admin_image: test.createdBy.admin_image,
+            sample_question: test.sample_question,
+            test_image: test?.test_image
+                ? `${baseUrl}/${test?.test_image?.replace(/\\/g, "/")}`
+                : "",
         };
 
         res.status(200).json(sanitizedTest);
@@ -399,7 +403,7 @@ exports.updateUser = async (req, res) => {
             { $set: data }, // Update the merged data
             { new: true, runValidators: true } // Return the updated document and run validation
         );
-       
+
         // Generate JWT token
         const token = jwt.sign({ userId: updatedUser._id }, JWT_SECRET);
         const notification = new notificationModel({
@@ -407,8 +411,8 @@ exports.updateUser = async (req, res) => {
             message: `Hello ${updatedUser.name}, Your Profile updated successfully :).`,
             activityType: "PROFILE_UPDATED",
             relatedId: updatedUser._id,
-          });
-          await notification.save();
+        });
+        await notification.save();
 
 
         res.status(200).json({
@@ -426,9 +430,10 @@ exports.updateUser = async (req, res) => {
 
 
 
-// Controller to retrieve user and populate testsTaken with test details
+// Controller to retrieve user and populate testsTaken with test details submited the test only
 exports.getUserWithTests = async (req, res) => {
     try {
+        const baseUrl = req.protocol + "://" + req.get("host");
         const { userId } = req.params;  // Extract userId from URL params
 
         // Check if userId is a valid MongoDB ObjectId
@@ -445,21 +450,67 @@ exports.getUserWithTests = async (req, res) => {
                 // model: Test,  // Make sure to reference the Test model explicitly
             });
 
+
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
 
-
-        res.status(200).json({
-            message: 'User retrieved successfully',
-            user,
-        });
-    } catch (error) {   
+        const result = {
+            testsTaken: user.testsTaken.map(test => {
+                return {
+                    _id: test?.testId?._id,
+                    subject: test?.testId?.subject,
+                    test_image: test?.testId?.test_image ? `${baseUrl}/${test?.testId?.test_image.replace(/\\/g, "/")}`
+                        : ""
+                }
+            }
+            ),
+        }
+        res.status(200).json(result);
+    } catch (error) {
         console.error('Error retrieving user and tests:', error);
         res.status(500).json({ message: 'Error retrieving user', error });
     }
 };
 
+
+
+// Controller to get all tests with specific fields
+exports.getAllTests = async (req, res) => {
+    try {
+        console.log("Called")
+      // Define the base URL for constructing the test_image URL
+      const baseUrl = req.protocol + '://' + req.get('host'); 
+  
+      // Fetch only specific fields from the tests
+      const tests = await Test.find(); // Select only _id, subject, and test_image
+  
+      // Map through the results to format the test_image field
+      const formattedTests = tests.map(test => ({
+        _id: test._id,
+        subject: test.subject,
+        test_image: test.test_image 
+          ? `${baseUrl}/${test.test_image.replace(/\\/g, "/")}`
+          : ""
+      }));
+  
+      // Send the formatted tests as a response
+      res.status(200).json({
+        success: true,
+        count: formattedTests.length,
+        data: formattedTests
+      });
+    } catch (error) {
+      // Send error response if something goes wrong
+      console.log(error);
+      
+      res.status(500).json({
+        success: false,
+        message: 'Server Error',
+        error: error.message
+      });
+    }
+  };
 
 
 

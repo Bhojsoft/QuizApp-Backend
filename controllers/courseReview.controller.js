@@ -1,6 +1,7 @@
 
 const Course = require("../models/course.model");
-const registration = require("../models/user.model");
+const User = require("../models/user.model");
+
 const { ApiError } = require("../utils/ApiError");
 const { ApiResponse } = require("../utils/ApiResponse");
 
@@ -36,7 +37,7 @@ const getReviewsByCourseId = async (req, res) => {
     const baseUrl = req.protocol + "://" + req.get("host");
     const page = parseInt(req.query.page) || 1; // current page number, defaults to 1
     const limit = parseInt(req.query.limit) || 2; // number of reviews per page, defaults to 2
-    const courseid = req.params.courseid;
+    const courseid = req.params.id;
 
     try {
         // Fetch the course by ID but only select the reviews field

@@ -13,6 +13,11 @@ app.use(bodyparser.urlencoded({ extended: false }));
 app.use(bodyparser.json());
 
 
+const path = require('path');
+
+// Serve static files from the 'public' directory
+app.use('/public', express.static(path.join(__dirname, 'public')));
+
 
 app.use('/api/tests', testroute);
 app.use('/api', userroute);
@@ -25,7 +30,7 @@ app.use("/notifications", notificationRoutes);
 const courseRoute = require("./routers/course.router");
 app.use("/course", courseRoute);
 
-// const reviewRoute= require("./routers/review.router");
-// app.use("/review", reviewRoute);
+const reviewRoute= require("./routers/review.router");
+app.use("/review", reviewRoute);
 
 module.exports = app;

@@ -16,7 +16,11 @@ router.get('/profile', authenticate, userController.getProfile);
 // Route to update user information (protected route)
 router.patch('/:userId', authenticate, upload.single("profile_image"), userController.updateUser);
 
-// Controller to get testId(s) from testsTaken for a specific user
+// Route to get all tests
+router.get('/alltests', userController.getAllTests);
+
+
+// Controller to get testId(s) from testsTaken for a specific user only submited test 
 router.get('/user/:userId/tests',userController.getUserWithTests);
 
 
@@ -54,7 +58,7 @@ router.get('/practicetests/subject/:subject', userController.getPracticeTestsByS
 // Route to calculate and display the score of a practice test
 router.post('/practicetests/:testId/score', userController.calculatePracticeTestScore);
 
-
+// filter userscore
 router.get('/top-users', userController.getTopUsersByScore);
 
 module.exports = router;

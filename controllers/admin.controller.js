@@ -86,19 +86,32 @@ exports.deleteTest = async (req, res) => {
 };
 
 // Get all tests created by the Admin
+
 exports.getTestsByAdmin = async (req, res) => {
   try {
+    const baseUrl = req.protocol + "://" + req.get("host");
     const tests = await Test.find({ createdBy: req.body.AdminId });
-    res.status(200).json(tests);
+
+    // Map through the tests and update the test_image field
+    const updatedTests = tests.map(test => {
+      return {
+        ...test._doc, // Spread to preserve other properties
+        test_image: `${baseUrl}${test.test_image}` // Concatenate base URL with test_image
+      };
+    });
+
+    res.status(200).json(updatedTests);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 };
 
 
+
 // Get test by ID
 exports.getTestById = async (req, res) => {
   try {
+    const baseUrl = req.protocol + "://" + req.get("host");
     const { testId } = req.params;
 
     // Find the test by its ID
@@ -108,7 +121,27 @@ exports.getTestById = async (req, res) => {
       return res.status(404).json({ message: 'Test not found' });
     }
 
-    res.status(200).json(test);
+    const result={
+      title:test.title,
+      subject:test.subject,
+      questions:test.questions,
+      startTime:test.startTime,
+      duration:test.duration,
+      createdBy:test.createdBy,
+      class:test.class,
+      description:test.description,
+      topic:test.topic,
+      totalMarks:test.totalMarks,
+      passingMarks:test.passingMarks,
+      test_image:test?.test_image
+      ? `${baseUrl}/${test?.test_image?.replace(/\\/g, "/")}`
+      : "", // Store the image path here,
+      sample_question:test.sample_question
+    }
+
+    res.status(200).json(
+    result
+    );
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

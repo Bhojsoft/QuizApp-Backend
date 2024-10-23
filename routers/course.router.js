@@ -34,6 +34,7 @@ const upload = multer({
 
 router.get("/", async (req, res, next) => {
   try {
+    
     const baseUrl = req.protocol + "://" + req.get("host");
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 4;
@@ -47,22 +48,23 @@ router.get("/", async (req, res, next) => {
       .limit(limit)
       .skip(skip);
 
-    const coursesWithFullImageUrls = courses.map((course) => ({
-      _id: course?._id,
-      course_name: course?.course_name || "",
-      online_offline: course?.online_offline || "",
-      course_rating: "",
-      course_duration: Math.floor(
-        Math.round(
-          ((course?.end_date - course?.start_date) /
-            (1000 * 60 * 60 * 24 * 7)) *
-            100
-        ) / 100
-      ),
-      course_price: course?.price || "",
-      course_offer_prize: course?.offer_prize || "",
-    
-    }));
+      const coursesWithFullImageUrls = courses.map((course) => ({
+        _id: course?._id,
+        course_name: course?.course_name || "",
+        online_offline: course?.online_offline || "",
+        course_rating: "",
+        course_duration: Math.floor(
+          Math.round(
+            ((course?.end_date - course?.start_date) / (1000 * 60 * 60 * 24 * 7)) *
+              100
+          ) / 100
+        ),
+        course_price: course?.price || "",
+        course_offer_prize: course?.offer_prize || "",
+        thumbnail_image: course?.thumbnail_image
+          ? `${baseUrl}/${course?.thumbnail_image?.replace(/\\/g, "/")}`
+          : "",
+      }));
 
     const totalCourses = await Course.countDocuments();
     const totalPages = Math.ceil(totalCourses / limit);
@@ -83,7 +85,6 @@ router.post(
   "/",authenticateToken,
   upload.fields([
     { name: "thumbnail_image", maxCount: 1 },
-    { name: "gallary_image", maxCount: 1 },
   ]),
   authenticateToken,
   async (req, res) => {
@@ -146,8 +147,7 @@ router.get("/:id", async (req, res, next) => {
 
   try {
     const courseData = await Course.findById(req.params.id)
-      .populate("category_id", "category_name -_id")
-      .populate("trainer_id", "f_Name l_Name business_Name trainer_image role");
+    .populate("createdBy", "name email")
 
     if (!courseData) {
       return res
@@ -167,7 +167,6 @@ router.get("/:id", async (req, res, next) => {
       course_name: courseData?.course_name || "",
       course_brief_info: courseData?.course_brief_info || "",
       course_information: courseData?.course_information || "",
-      category_name: courseData?.category_id?.category_name || "",
       online_offline: courseData?.online_offline || "",
       thumbnail_image: courseData?.thumbnail_image
         ? `${baseUrl}/${courseData?.thumbnail_image.replace(/\\/g, "/")}`
@@ -176,19 +175,6 @@ router.get("/:id", async (req, res, next) => {
       end_date: courseData?.end_date || "",
       start_time: courseData?.start_time || "",
       end_time: courseData?.end_time || "",
-      business_Name:
-        courseData?.trainer_id?.business_Name ||
-        `${courseData?.trainer_id?.f_Name || ""} ${
-          courseData?.trainer_id?.l_Name || ""
-        }`.trim() ||
-        "",
-      trainer_image: courseData?.trainer_id?.trainer_image
-        ? `${baseUrl}/${courseData?.trainer_id?.trainer_image.replace(
-            /\\/g,
-            "/"
-          )}`
-        : "",
-      trainer_id: courseData?.trainer_id?._id,
       course_rating: averageRating || "",
       course_duration: Math.floor(
         Math.round(
@@ -214,8 +200,6 @@ router.put(
   "/:id",
   upload.fields([
     { name: "thumbnail_image", maxCount: 1 },
-    { name: "gallary_image", maxCount: 5 },
-    { name: "trainer_materialImage", maxCount: 1 },
   ]),
   authenticateToken,
   async (req, res) => {
@@ -235,14 +219,8 @@ router.put(
       thumbnail_image: req.files["thumbnail_image"]
         ? req.files["thumbnail_image"][0].path
         : undefined,
-      gallary_image: req.files["gallary_image"]
-        ? req.files["gallary_image"][0].path
-        : undefined,
-      trainer_materialImage: req.files["trainer_materialImage"]
-        ? req.files["trainer_materialImage"][0].path
-        : undefined,
-      category_id: req.body.category_id,
-      trainer_id: req.user.id,
+     
+     
     };
 
     try {
@@ -257,7 +235,7 @@ router.put(
       }
 
       const notification = new NotificationModel({
-        recipient: req.user.id,
+        recipient: req.user.userId,
         message: `Your course "${updatedCourse.course_name}" has been updated successfully.`,
         activityType: "COURSE_UPDATE",
         relatedId: updatedCourse._id,
@@ -327,7 +305,7 @@ router.delete("/:id", async (req, res) => {
     await notifications.save();
 
     const notification = new NotificationModel({
-      recipient: req.user.id,
+      recipient: req.user.userId,
       message: `Your course "${deletedCourse.course_name}" has been deleted successfully.`,
       activityType: "COURSE_DELETE",
       relatedId: deletedCourse._id,
