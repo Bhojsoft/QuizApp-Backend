@@ -152,7 +152,7 @@ exports.getTestQuiz = async (req, res) => {
 exports.submitTest = async (req, res) => {
     try {
         const testId = req.params.id;
-        const { answers, studentId } = req.body;
+        const { answers, userId } = req.body;
 
         // Validate test existence
         const test = await Test.findById(testId);
@@ -165,8 +165,8 @@ exports.submitTest = async (req, res) => {
         if (!answers || !Array.isArray(answers)) {
             return res.status(400).json({ error: 'Answers must be provided as an array.' });
         }
-        if (!studentId) {
-            return res.status(400).json({ error: 'Student ID is required.' });
+        if (!userId) {
+            return res.status(400).json({ error: 'user ID is required.' });
         }
 
         let score = 0;
@@ -182,25 +182,26 @@ exports.submitTest = async (req, res) => {
             }
         });
 
-        const finalScore = (score / totalQuestions) * 100;
+        const finalScore = parseFloat(((score / totalQuestions) * 100).toFixed(2));
+
 
         // Update student's test history
-        const student = await userModel.findByIdAndUpdate(
-            studentId,
+        const user = await userModel.findByIdAndUpdate(
+            userId,
             { $push: { testsTaken: { testId, score: finalScore } } },
             { new: true }
         );
 
-        if (!student) {
-            return res.status(404).json({ error: 'Student not found' });
+        if (!user) {
+            return res.status(404).json({ error: 'user not found' });
         }
 
         // Create notification
         const notification = new notificationModel({
-            recipient: student._id,
-            message: `Hello ${student.name}, your test has been submitted successfully!`,
+            recipient: user._id,
+            message: `Hello ${user.name}, your test on the subject "${test.subject}" has been submitted successfully!`,
             activityType: "TEST_SUBMIT",
-            relatedId: student._id,
+            relatedId: user._id,
         });
 
         await notification.save();
@@ -209,6 +210,7 @@ exports.submitTest = async (req, res) => {
         res.status(200).json({
             message: 'Test submitted successfully',
             score: finalScore,
+            userName: user.name,
             totalQuestions,
             correctAnswers: score,
             wrongAnswers: totalQuestions - score
@@ -231,6 +233,8 @@ exports.getPracticeTestsBySubject = async (req, res) => {
         if (tests.length === 0) {
             return res.status(404).json({ message: 'No practice tests found for the given subject.' });
         }
+
+
 
         res.status(200).json(tests); // Send the found tests in the response
     } catch (error) {
@@ -307,7 +311,7 @@ exports.registerUser = async (req, res) => {
 
 
 
-        res.status(201).json({ token, user });
+        res.status(201).json({ token, message: 'Register successful!' });
     } catch (err) {
         res.status(500).json({ message: 'Error registering user', error: err.message });
     }
@@ -340,7 +344,7 @@ exports.loginUser = async (req, res) => {
         });
         await notification.save();
 
-        res.status(200).json({ token, user });
+        res.status(200).json({ token, message: 'Login successful!' });
     } catch (err) {
         res.status(500).json({ message: 'Error logging in', error: err.message });
     }
@@ -478,7 +482,7 @@ exports.getUserWithTests = async (req, res) => {
 // Controller to get all tests with specific fields
 exports.getAllTests = async (req, res) => {
     try {
-        console.log("Called")
+        
       // Define the base URL for constructing the test_image URL
       const baseUrl = req.protocol + '://' + req.get('host'); 
   
@@ -514,33 +518,31 @@ exports.getAllTests = async (req, res) => {
 
 
 
-// Controller to filter users by top test scores
-exports.getTopUsersByScore = async (req, res) => {
+// Controller to filter users by average test scores
+exports.getTopUsersByAverageScore = async (req, res) => {
     try {
-        // Find all users and sort by the highest test score in testsTaken
+        // Find all users and calculate the average test score from testsTaken
         const users = await User.aggregate([
             // Unwind the testsTaken array to work with individual test records
             { $unwind: "$testsTaken" },
-            // Sort by the score in descending order
-            { $sort: { "testsTaken.score": -1 } },
-            // Group by user ID to get the top score per user
+            // Group by user ID to calculate the average score for each user
             {
                 $group: {
                     _id: "$_id",
                     name: { $first: "$name" },
                     email: { $first: "$email" },
-                    topScore: { $first: "$testsTaken.score" }, // Get the top score
-                    profile_image: { $first: "$profile_image" }
+                    profile_image: { $first: "$profile_image" },
+                    averageScore: { $avg: "$testsTaken.score" } // Calculate the average score
                 }
             },
-            // Sort users by their top score in descending order
-            { $sort: { topScore: -1 } },
+            // Sort users by their average score in descending order
+            { $sort: { averageScore: -1 } }
         ]);
 
         // Send the result back as a response
         res.status(200).json({
             success: true,
-            message: 'Users filtered by top test score',
+            message: 'Users filtered by average test score',
             data: users
         });
     } catch (error) {
@@ -552,6 +554,7 @@ exports.getTopUsersByScore = async (req, res) => {
         });
     }
 };
+
 
 
 

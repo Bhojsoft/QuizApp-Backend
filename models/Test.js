@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-
+const reviewSchema = require("./review.model");
 // Define Question Schema
 const questionSchema = new mongoose.Schema({
   question: { type: String, required: true },
@@ -20,7 +20,8 @@ const testSchema = new mongoose.Schema({
   test_image: { type: String },
   totalMarks: { type: Number },
   passingMarks: { type: Number },
-  sample_question:{type: String}
+  sample_question:{type: String},
+  reviews: [reviewSchema],
 }, {
   timestamps: true
 });

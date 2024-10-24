@@ -26,7 +26,8 @@ exports.createTest = async (req, res) => {
       totalMarks,
       passingMarks,
       test_image, // Store the image path here,
-      sample_question
+      sample_question,
+      
     });
 
     await test.save();
@@ -169,7 +170,7 @@ exports.loginAdmin = async (req, res) => {
     // Generate JWT token
     const token = jwt.sign({ userId: admin._id }, JWT_SECRET);
 
-    res.status(200).json({ token, admin });
+    res.status(200).json({ token ,  message: 'Login successful!'});
   } catch (err) {
     res.status(500).json({ message: 'Error logging in', error: err.message });
   }

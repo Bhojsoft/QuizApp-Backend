@@ -37,10 +37,10 @@ const isStudent = async (req, res, next) => {
 
 // Student routes
 // get  tests by subject
-router.get('/tests/count',userController.getTestCountBySubject);
+// router.get('/tests/count',userController.getTestCountBySubject);
 
 // to get topics and quizzes by subject name
-router.get('/tests/subject/:subject', userController.getTopicsAndQuizzesBySubject);
+// router.get('/tests/subject/:subject', userController.getTopicsAndQuizzesBySubject);
 
 
 // Get a specific test details
@@ -48,9 +48,9 @@ router.get('/test/:id', userController.getTest);
 
 // Get a specific test Quiz
 router.get('/test/question/:id', userController.getTestQuiz);
-      // score test
-router.post('/test/:id/submit', userController.submitTest);
 
+      //test score 
+router.post('/test/:id/submit', userController.submitTest);
 
 // Route to get practice tests by subject name
 router.get('/practicetests/subject/:subject', userController.getPracticeTestsBySubject);
@@ -59,6 +59,6 @@ router.get('/practicetests/subject/:subject', userController.getPracticeTestsByS
 router.post('/practicetests/:testId/score', userController.calculatePracticeTestScore);
 
 // filter userscore
-router.get('/top-users', userController.getTopUsersByScore);
+router.get('/top-users', userController.getTopUsersByAverageScore);
 
 module.exports = router;

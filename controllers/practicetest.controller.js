@@ -15,7 +15,6 @@ exports.createPracticeTest = async (req, res) => {
             startTime,
             duration,
             createdBy: adminId,
-            description,
             totalMarks,
             passingMarks
         });

@@ -10,12 +10,15 @@ const {authenticate} =require("../middlewares/authMiddleware")
 // router.post('/courseReviews',authenticate, courseReviews);
 
 
-const { courseReviews, getReviewsByCourseId } = require('../controllers/courseReview.controller'); // Ensure the correct path
-
+const { courseReviews, getReviewsByCourseId } = require('../controllers/courseReview.controller'); 
 router.post('/add-review',authenticate,courseReviews); // This is the correct usage
- 
-
 router.get('/:id',getReviewsByCourseId);
+
+// test review router
+const{testReviews} = require('../controllers/testReview.controller')
+
+router.post('/add-test-review',authenticate,testReviews);
+
 
 
 

@@ -284,6 +284,8 @@ router.delete("/:id", async (req, res, next) => {
   }
 });
 
+
+// delete couse
 router.delete("/:id", async (req, res) => {
   try {
     const course = await Course.findById(req.params.id);
@@ -321,72 +323,6 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-router.get("/trainer", async (req, res) => {
-  const trainerId = req.user.id;
 
-  if (!trainerId) res.send("No courses");
-  try {
-    const courses = await Course.find({ trainerid: trainerId })
-      .sort({ createdAt: -1 })
-      .skip(startIndex)
-      .limit(limit)
-      .populate("category_id", "category_name")
-      .populate("trainer_id", "f_Name l_Name trainer_image business_Name role");
-
-    const baseUrl = req.protocol + "://" + req.get("host");
-
-    const coursesWithFullImageUrls = await Promise.all(
-      courses.map((course) => {
-        const reviews = course.reviews;
-        const totalStars = reviews.reduce(
-          (sum, review) => sum + review.star_count,
-          0
-        );
-        const averageRating = totalStars / reviews.length;
-
-        return {
-          _id: course?._id,
-          course_name: course?.course_name || "",
-          category_name: course?.category_id?.category_name || "",
-          online_offline: course?.online_offline || "",
-          thumbnail_image: course?.thumbnail_image
-            ? `${baseUrl}/${course?.thumbnail_image?.replace(/\\/g, "/")}`
-            : "",
-          business_Name: course?.trainer_id?.business_Name
-            ? course?.trainer_id?.business_Name
-            : `${course?.trainer_id?.f_Name || ""} ${
-                course?.trainer_id?.l_Name || ""
-              }`.trim() || "",
-          trainer_image: course?.trainer_id?.trainer_image
-            ? `${baseUrl}/${course?.trainer_id?.trainer_image?.replace(
-                /\\/g,
-                "/"
-              )}`
-            : "",
-          course_rating: averageRating || "",
-          tags: course?.tags || "",
-          course_duration: Math.floor(
-            Math.round(
-              ((course?.end_date - course?.start_date) /
-                (1000 * 60 * 60 * 24 * 7)) *
-                100
-            ) / 100
-          ),
-          course_price: course?.price || "",
-          course_offer_prize: course?.offer_prize || "",
-          course_flag: getRoleOrInstitute(course?.trainer_id?.role) || "",
-        };
-      })
-    );
-
-    res.status(200).json(coursesWithFullImageUrls);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      message: "Server Error",
-      error: err.message || "An error occurred while fetching courses.",
-    });
-  }
-});
 
 module.exports = router;
