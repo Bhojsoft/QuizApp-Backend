@@ -151,6 +151,7 @@ exports.getTestQuiz = async (req, res) => {
 
 exports.submitTest = async (req, res) => {
     try {
+        const baseUrl = req.protocol + "://" + req.get("host");
         const testId = req.params.id;
         const { answers, userId } = req.body;
 
@@ -212,6 +213,9 @@ exports.submitTest = async (req, res) => {
             score: finalScore,
             userName: user.name,
             totalQuestions,
+            profile_image: user?.profile_image
+            ? `${baseUrl}/${user?.profile_image?.replace(/\\/g, "/")}`
+            : "",
             correctAnswers: score,
             wrongAnswers: totalQuestions - score
         });
@@ -307,7 +311,7 @@ exports.registerUser = async (req, res) => {
         await user.save();
 
         // Generate JWT token
-        const token = jwt.sign({ userId: user._id }, JWT_SECRET);
+        const token = jwt.sign({ userId: user._id}, JWT_SECRET);
 
 
 
@@ -371,7 +375,6 @@ exports.getProfile = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
-
 
 // Controller to update user details
 exports.updateUser = async (req, res) => {
@@ -491,7 +494,7 @@ exports.getAllTests = async (req, res) => {
   
       // Map through the results to format the test_image field
       const formattedTests = tests.map(test => ({
-        _id: test._id,
+        _id: test._id, 
         subject: test.subject,
         test_image: test.test_image 
           ? `${baseUrl}/${test.test_image.replace(/\\/g, "/")}`

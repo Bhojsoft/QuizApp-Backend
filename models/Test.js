@@ -11,7 +11,6 @@ const questionSchema = new mongoose.Schema({
 const testSchema = new mongoose.Schema({
   title: { type: String, required: true },
   subject: { type: String, required: true },
-  topic: { type:String, required: true},
   questions: [questionSchema],
   startTime: { type: Date, required: true },
   duration: { type: Number, required: true },

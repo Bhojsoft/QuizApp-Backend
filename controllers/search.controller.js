@@ -1,4 +1,5 @@
 const Course = require("../models/course.model");
+const User = require("../models/user.model");
 const { ApiError } = require("../utils/ApiError");
 const { ApiResponse } = require("../utils/ApiResponse");
 
@@ -71,6 +72,88 @@ const searchCourseByName = async (req, res) => {
   }
 };
 
+
+
+const searchUserByName = async (req, res) => {
+    const baseUrl = req.protocol + "://" + req.get("host");
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 4;
+
+    try {
+        const { name } = req.query;
+
+        if (!name) {
+            return res.status(400).json({ error: "User name is required" });
+        }
+
+        // Aggregation pipeline to search for users by name and ensure they have taken tests
+        const users = await User.aggregate([
+            // Match users by name and ensure testsTaken array is not empty
+            {
+                $match: {
+                    name: { $regex: name, $options: "i" }, // Case-insensitive search
+                    testsTaken: { $exists: true, $not: { $size: 0 } } // Only users with testsTaken
+                }
+            },
+            // Unwind the testsTaken array to calculate the average score
+            { $unwind: "$testsTaken" },
+            // Group by user ID and calculate the average score for each user
+            {
+                $group: {
+                    _id: "$_id",
+                    name: { $first: "$name" },
+                    email: { $first: "$email" },
+                    profile_image: { $first: "$profile_image" },
+                    averageScore: { $avg: "$testsTaken.score" } // Calculate the average score
+                }
+            },
+            // Sort users by creation date (most recent first)
+            { $sort: { createdAt: -1 } },
+            // Pagination: Skip and Limit
+            { $skip: (page - 1) * limit },
+            { $limit: limit }
+        ]);
+
+        // Count total number of users for pagination
+        const totaluser = await User.countDocuments({
+            name: { $regex: name, $options: "i" },
+            testsTaken: { $exists: true, $not: { $size: 0 } }
+        });
+
+        if (!users || users.length === 0) {
+            return res.status(404).json({ message: "No users found who have taken tests" });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Users found",
+            data: users.map((user) => {
+                return {
+                    _id: user._id,
+                    name: user?.name || "",
+                    email: user?.email || "",
+                    profile_image: user?.profile_image || "",
+                    averageScore: user?.averageScore || 0 // Include average score
+                };
+            }),
+            pagination: {
+                currentPage: page,
+                totalPages: Math.ceil(totaluser / limit),
+                totalItems: totaluser,
+                pageSize: limit,
+            }
+        });
+    } catch (error) {
+        console.error("Error searching for users:", error);
+        res.status(500).json({
+            success: false,
+            message: "Error while searching for users",
+            error: error.message
+        });
+    }
+};
+
+
 module.exports = {
-  searchCourseByName,
+  searchCourseByName,searchUserByName
 };

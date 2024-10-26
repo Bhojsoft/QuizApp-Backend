@@ -43,8 +43,7 @@ router.get("/", async (req, res, next) => {
 
     const courses = await Course.find()
       .sort({ createdAt: -1 })
-      
-      .populate("createdBy", "name email")
+      .populate("createdBy","name email")
       .limit(limit)
       .skip(skip);
 
@@ -64,6 +63,7 @@ router.get("/", async (req, res, next) => {
         thumbnail_image: course?.thumbnail_image
           ? `${baseUrl}/${course?.thumbnail_image?.replace(/\\/g, "/")}`
           : "",
+          createdBy:course?.createdBy?.name || "",
       }));
 
     const totalCourses = await Course.countDocuments();
@@ -187,6 +187,7 @@ router.get("/:id", async (req, res, next) => {
       tags: courseData?.tags || "",
       offer_prize: courseData?.offer_prize || "",
       course_flag: courseData?.trainer_id?.role || "",
+      createdBy:courseData?.createdBy?.name || "",
     };
 
     res.status(200).json(courseWithFullImageUrls);

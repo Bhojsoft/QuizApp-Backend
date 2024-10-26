@@ -19,6 +19,7 @@ const practicetestSchema = new mongoose.Schema({
   description: { type: String },
   totalMarks: { type: Number },
   passingMarks: { type: Number },
+ 
 }, {
   timestamps: true
 });
