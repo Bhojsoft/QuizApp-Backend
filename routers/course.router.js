@@ -34,11 +34,6 @@ const upload = multer({
 
 router.get("/", async (req, res, next) => {
   try {
-<<<<<<< HEAD
-
-=======
-    
->>>>>>> a3688c64c4260ca36296affdbc8b6f8557f01106
     const baseUrl = req.protocol + "://" + req.get("host");
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 4;
@@ -47,7 +42,6 @@ router.get("/", async (req, res, next) => {
 
     const courses = await Course.find()
       .sort({ createdAt: -1 })
-<<<<<<< HEAD
       .populate("createdBy", "name email")
       .limit(limit)
       .skip(skip);
@@ -70,30 +64,6 @@ router.get("/", async (req, res, next) => {
         : "",
       createdBy: course?.createdBy?.name || "",
     }));
-=======
-      .populate("createdBy","name email")
-      .limit(limit)
-      .skip(skip);
-
-      const coursesWithFullImageUrls = courses.map((course) => ({
-        _id: course?._id,
-        course_name: course?.course_name || "",
-        online_offline: course?.online_offline || "",
-        course_rating: "",
-        course_duration: Math.floor(
-          Math.round(
-            ((course?.end_date - course?.start_date) / (1000 * 60 * 60 * 24 * 7)) *
-              100
-          ) / 100
-        ),
-        course_price: course?.price || "",
-        course_offer_prize: course?.offer_prize || "",
-        thumbnail_image: course?.thumbnail_image
-          ? `${baseUrl}/${course?.thumbnail_image?.replace(/\\/g, "/")}`
-          : "",
-          createdBy:course?.createdBy?.name || "",
-      }));
->>>>>>> a3688c64c4260ca36296affdbc8b6f8557f01106
 
     const totalCourses = await Course.countDocuments();
     const totalPages = Math.ceil(totalCourses / limit);
@@ -111,11 +81,7 @@ router.get("/", async (req, res, next) => {
 });
 
 router.post(
-<<<<<<< HEAD
   "/", authenticateToken,
-=======
-  "/",authenticateToken,
->>>>>>> a3688c64c4260ca36296affdbc8b6f8557f01106
   upload.fields([
     { name: "thumbnail_image", maxCount: 1 },
   ]),
@@ -137,11 +103,7 @@ router.post(
       thumbnail_image: req.files["thumbnail_image"]
         ? req.files["thumbnail_image"][0].path
         : "",
-<<<<<<< HEAD
       createdBy: req.user.userId
-=======
-        createdBy:req.user.userId
->>>>>>> a3688c64c4260ca36296affdbc8b6f8557f01106
     });
 
     try {
@@ -184,11 +146,7 @@ router.get("/:id", async (req, res, next) => {
 
   try {
     const courseData = await Course.findById(req.params.id)
-<<<<<<< HEAD
       .populate("createdBy", "name email")
-=======
-    .populate("createdBy", "name email")
->>>>>>> a3688c64c4260ca36296affdbc8b6f8557f01106
 
     if (!courseData) {
       return res
@@ -221,22 +179,14 @@ router.get("/:id", async (req, res, next) => {
         Math.round(
           ((courseData?.end_date - courseData?.start_date) /
             (1000 * 60 * 60 * 24 * 7)) *
-<<<<<<< HEAD
           100
-=======
-            100
->>>>>>> a3688c64c4260ca36296affdbc8b6f8557f01106
         ) / 100
       ),
       price: courseData?.price || "",
       tags: courseData?.tags || "",
       offer_prize: courseData?.offer_prize || "",
       course_flag: courseData?.trainer_id?.role || "",
-<<<<<<< HEAD
       createdBy: courseData?.createdBy?.name || "",
-=======
-      createdBy:courseData?.createdBy?.name || "",
->>>>>>> a3688c64c4260ca36296affdbc8b6f8557f01106
     };
 
     res.status(200).json(courseWithFullImageUrls);
@@ -254,7 +204,6 @@ router.put(
   authenticateToken,
   async (req, res) => {
     const courseId = req.params.id;
-<<<<<<< HEAD
 
     const existingCourse = await Course.findById(courseId);
     if (!existingCourse) {
@@ -275,25 +224,6 @@ router.put(
       thumbnail_image: req?.files["thumbnail_image"]
         ? req.files["thumbnail_image"][0].path
         : existingCourse.thumbnail_image, // Keep existing image if no new image
-=======
-    const updateData = {
-      course_name: req.body.course_name,
-      online_offline: req.body.online_offline,
-      price: req.body.price,
-      offer_prize: req.body.offer_prize,
-      start_date: req.body.start_date,
-      end_date: req.body.end_date,
-      start_time: req.body.start_time,
-      end_time: req.body.end_time,
-      tags: req.body.tags,
-      course_brief_info: req.body.course_brief_info,
-      course_information: req.body.course_information,
-      thumbnail_image: req.files["thumbnail_image"]
-        ? req.files["thumbnail_image"][0].path
-        : undefined,
-     
-     
->>>>>>> a3688c64c4260ca36296affdbc8b6f8557f01106
     };
 
     try {

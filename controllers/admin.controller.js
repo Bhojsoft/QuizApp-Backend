@@ -89,12 +89,7 @@ exports.deleteTest = async (req, res) => {
 exports.getTestsByAdmin = async (req, res) => {
   try {
     const baseUrl = req.protocol + "://" + req.get("host");
-<<<<<<< HEAD
     const tests = await Test.find({ createdBy: req.user.userId });
-    
-=======
-    const tests = await Test.find({ createdBy: req.body.AdminId });
->>>>>>> a3688c64c4260ca36296affdbc8b6f8557f01106
 
     // Map through the tests and update the test_image field
     const updatedTests = tests.map(test => {

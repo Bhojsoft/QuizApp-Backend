@@ -1,11 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/user.controller');
-<<<<<<< HEAD
-const { authenticate, authenticateToken } = require('../middlewares/authMiddleware'); // Assuming you have authentication middleware
-=======
 const { authenticate } = require('../middlewares/authMiddleware'); // Assuming you have authentication middleware
->>>>>>> a3688c64c4260ca36296affdbc8b6f8557f01106
 const upload = require('../middlewares/multerConfig');
 
 // Route for user registration
@@ -51,17 +47,10 @@ const isStudent = async (req, res, next) => {
 router.get('/test/:id', userController.getTest);
 
 // Get a specific test Quiz
-<<<<<<< HEAD
 router.get('/test/question/:id',authenticate, userController.getTestQuiz);
 
       //test score 
 router.post('/test/:id/submit',authenticate, userController.submitTest);
-=======
-router.get('/test/question/:id', userController.getTestQuiz);
-
-      //test score 
-router.post('/test/:id/submit', userController.submitTest);
->>>>>>> a3688c64c4260ca36296affdbc8b6f8557f01106
 
 // Route to get practice tests by subject name
 router.get('/practicetests/subject/:subject', userController.getPracticeTestsBySubject);
@@ -72,11 +61,8 @@ router.post('/practicetests/:testId/score', userController.calculatePracticeTest
 // filter userscore
 router.get('/top-users', userController.getTopUsersByAverageScore);
 
-<<<<<<< HEAD
 
 // Get test completion percentage for a user
 router.get('/:userId/test-completion', userController.getTestCompletionPercentage);
 
-=======
->>>>>>> a3688c64c4260ca36296affdbc8b6f8557f01106
 module.exports = router;
