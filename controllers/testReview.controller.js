@@ -8,6 +8,10 @@ const { ApiResponse } = require("../utils/ApiResponse");
 
 const testReviews = async (req, res) => {
     try {
+<<<<<<< HEAD
+=======
+        console.log("test rev")
+>>>>>>> a3688c64c4260ca36296affdbc8b6f8557f01106
         const userid = req.user.userId;
         const { testid, review, star_count } = req.body;
         const test = await Test.findByIdAndUpdate(testid, {

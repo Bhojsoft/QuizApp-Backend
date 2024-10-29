@@ -153,8 +153,12 @@ exports.submitTest = async (req, res) => {
     try {
         const baseUrl = req.protocol + "://" + req.get("host");
         const testId = req.params.id;
+<<<<<<< HEAD
         const { answers } = req.body;
         const userId = req.user.userId;
+=======
+        const { answers, userId } = req.body;
+>>>>>>> a3688c64c4260ca36296affdbc8b6f8557f01106
 
         // Validate test existence
         const test = await Test.findById(testId);
@@ -215,8 +219,13 @@ exports.submitTest = async (req, res) => {
             userName: user.name,
             totalQuestions,
             profile_image: user?.profile_image
+<<<<<<< HEAD
                 ? `${baseUrl}/${user?.profile_image?.replace(/\\/g, "/")}`
                 : "",
+=======
+            ? `${baseUrl}/${user?.profile_image?.replace(/\\/g, "/")}`
+            : "",
+>>>>>>> a3688c64c4260ca36296affdbc8b6f8557f01106
             correctAnswers: score,
             wrongAnswers: totalQuestions - score
         });
@@ -312,7 +321,11 @@ exports.registerUser = async (req, res) => {
         await user.save();
 
         // Generate JWT token
+<<<<<<< HEAD
         const token = jwt.sign({ userId: user._id }, JWT_SECRET);
+=======
+        const token = jwt.sign({ userId: user._id}, JWT_SECRET);
+>>>>>>> a3688c64c4260ca36296affdbc8b6f8557f01106
 
 
 
@@ -486,6 +499,7 @@ exports.getUserWithTests = async (req, res) => {
 // Controller to get all tests with specific fields
 exports.getAllTests = async (req, res) => {
     try {
+<<<<<<< HEAD
 
         // Define the base URL for constructing the test_image URL
         const baseUrl = req.protocol + '://' + req.get('host');
@@ -519,6 +533,41 @@ exports.getAllTests = async (req, res) => {
         });
     }
 };
+=======
+        
+      // Define the base URL for constructing the test_image URL
+      const baseUrl = req.protocol + '://' + req.get('host'); 
+  
+      // Fetch only specific fields from the tests
+      const tests = await Test.find(); // Select only _id, subject, and test_image
+  
+      // Map through the results to format the test_image field
+      const formattedTests = tests.map(test => ({
+        _id: test._id, 
+        subject: test.subject,
+        test_image: test.test_image 
+          ? `${baseUrl}/${test.test_image.replace(/\\/g, "/")}`
+          : ""
+      }));
+  
+      // Send the formatted tests as a response
+      res.status(200).json({
+        success: true,
+        count: formattedTests.length,
+        data: formattedTests
+      });
+    } catch (error) {
+      // Send error response if something goes wrong
+      console.log(error);
+      
+      res.status(500).json({
+        success: false,
+        message: 'Server Error',
+        error: error.message
+      });
+    }
+  };
+>>>>>>> a3688c64c4260ca36296affdbc8b6f8557f01106
 
 
 
@@ -559,6 +608,7 @@ exports.getTopUsersByAverageScore = async (req, res) => {
     }
 };
 
+<<<<<<< HEAD
 // Calculate the percentage of tests completed by the user
 exports.getTestCompletionPercentage = async (req, res) => {
     try {
@@ -588,6 +638,8 @@ exports.getTestCompletionPercentage = async (req, res) => {
 };
 
 
+=======
+>>>>>>> a3688c64c4260ca36296affdbc8b6f8557f01106
 
 
 
