@@ -4,7 +4,7 @@ const testroute = require('./routers/Test.router');
 const userroute =require('./routers/user.routes');
 const adminRouter = require('./routers/admin.router');
 const practicetestRouter= require('./routers/practicetest.router')
-
+require('dotenv').config();
 
 
 

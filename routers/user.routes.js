@@ -3,18 +3,32 @@ const router = express.Router();
 const userController = require('../controllers/user.controller');
 const { authenticate } = require('../middlewares/authMiddleware'); // Assuming you have authentication middleware
 const upload = require('../middlewares/multerConfig');
-
+const { sendMail } = require("../utils/email");
+const multer = require("multer");
 // Route for user registration
 router.post('/register', userController.registerUser);
 
 // Route for user login
 router.post('/login', userController.loginUser);
 
+
+// POST route to initiate password reset
+router.post("/forget-password", userController.forgetPassward);
+
+// Route to handle password reset requests
+router.post("/reset-password", userController.resetPassword);
+
+
+router.post("/send-otp", userController.sendOtp);
+router.post("/verify-otp", userController.verifyOtp);
+router.post('/change-password',authenticate, userController.changePassword);
+
+
 // Route to get user profile (protected route)
 router.get('/profile', authenticate, userController.getProfile);
 
 // Route to update user information (protected route)
-router.patch('/:userId', authenticate, upload.single("profile_image"), userController.updateUser);
+router.patch('/', authenticate, upload.single("profile_image"), userController.updateUser);
 
 // Route to get all tests
 router.get('/alltests', userController.getAllTests);

@@ -6,8 +6,11 @@ const userModel = require('../models/user.model');
 const { default: mongoose } = require('mongoose');
 const PracticeTest = require('../models/practicetest');
 const notificationModel = require('../models/notification.model');
-
-
+const {  sendEmail } = require("../utils/email");
+require("dotenv").config();
+const { ApiError } = require("../utils/ApiError");
+const { ApiResponse } = require("../utils/ApiResponse");
+const otpStore = {};
 
 // Controller to get  tests by subject and retrieve test_image
 exports.getTestCountBySubject = async (req, res) => {
@@ -358,6 +361,7 @@ exports.loginUser = async (req, res) => {
 
 // Get user profile
 exports.getProfile = async (req, res) => {
+    const baseUrl = req.protocol + "://" + req.get("host");
     try {
         const user = await User.findById(req.user.userId); // Assuming req.user is set by the auth middleware
 
@@ -369,6 +373,9 @@ exports.getProfile = async (req, res) => {
             name: user.name,
             email: user.email,
             phone: user.phone,
+            profile_image: user?.profile_image
+        ? `${baseUrl}/${user?.profile_image.replace(/\\/g, "/")}`
+        : "",
 
         });
     } catch (error) {
@@ -412,8 +419,8 @@ exports.updateUser = async (req, res) => {
             { new: true, runValidators: true } // Return the updated document and run validation
         );
 
-        // Generate JWT token
-        const token = jwt.sign({ userId: updatedUser._id }, JWT_SECRET);
+        // Generate notification
+       
         const notification = new notificationModel({
             recipient: updatedUser._id,
             message: `Hello ${updatedUser.name}, Your Profile updated successfully :).`,
@@ -425,8 +432,7 @@ exports.updateUser = async (req, res) => {
 
         res.status(200).json({
             message: 'User updated successfully',
-            token, // Send the new token
-            user: updatedUser // Send updated user info
+
         });
     } catch (error) {
         console.error(error);
@@ -434,6 +440,163 @@ exports.updateUser = async (req, res) => {
     }
 };
 
+
+
+// Forget Passward controller ----------------------------------------------------------------
+exports.forgetPassward = async (req, res) => {
+    const { email } = req.body;
+    try {
+      const user = await User.findOne({ email: email });
+      if (!user) {
+        return res.status(404).json({ message: "Email not found" });
+      }
+      const generateResetToken = (userId) => {
+        return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "1h" });
+      };
+      const token = generateResetToken(user._id);
+      const resetTokenExpiry = Date.now() + 3600000; // 1 hour
+      user.resetPasswordToken = token;
+      user.resetPasswordExpires = resetTokenExpiry;
+      await user.save();
+  
+      const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+      sendEmail(
+        "forgotPassword",
+        {
+          name: user.name,
+          email: user.email,
+        },
+        [resetLink]
+      );
+  
+      res.status(200).json({ message: "Reset link sent to email", token });
+    } catch (err) {
+      console.log(err);
+      res.status(500).json(new ApiError(500, err.message, err));
+    }
+  };
+  
+  // Reset Passward controller ----------------------------------------------------------------
+  exports.resetPassword = async (req, res) => {
+    const { newPassword } = req.body;
+    const token = req.query.token;
+    console.log(token, newPassword);
+  
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  
+      const user = await User.findOne({
+        _id: decoded.userId,
+        resetPasswordToken: token,
+        resetPasswordExpires: { $gt: Date.now() },
+      });
+  
+      if (!user) {
+        return res
+          .status(400)
+          .json(new ApiError(400, "Invalid or expired token"));
+      }
+  
+      user.password = newPassword;
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpires = undefined;
+  
+      await user.save();
+  
+      res.status(200).json({ message: "Password reset successfully" });
+    } catch (error) {
+      // console.log(error);
+      res.status(500).json(new ApiError(500, error.message, error));
+    }
+  };
+
+// email verification 
+
+// Controller function to handle OTP requests
+exports.sendOtp = async function (req, res) {
+    try {
+      const { email } = req.body;
+  
+      if (!email) {
+        return res.status(400).json({ message: "Email and name are required" });
+      }
+  
+      const otp = generateOtp();
+      otpStore[email] = otp; // Store OTP temporarily for the given email
+  
+      const recipient = { email, name: "user" };
+      await sendEmail("otp", { email: email, name: "user" }, [otp]); // Send OTP email
+  
+      res.status(200).json({ message: "OTP sent successfully" });
+    } catch (error) {
+      console.error("Error sending OTP:", error);
+      res.status(500).json({ message: "Error sending OTP" });
+    }
+  };
+  
+  // Alternative Function to generate a 6-digit OTP
+  function generateOtp() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+  
+  
+  
+  // Controller function to verify OTP
+  exports.verifyOtp = async function (req, res) {
+    try {
+      const { email, otp } = req.body;
+  
+      if (!email || !otp) {
+        return res.status(400).json({ message: "Email and OTP are required" });
+      }
+  
+      const storedOtp = otpStore[email];
+  
+      if (storedOtp === otp) {
+        delete otpStore[email]; // OTP is valid, remove it from the store
+        res.status(200).json({ message: "OTP verified successfully" });
+      } else {
+        res.status(400).json({ message: "Invalid OTP" });
+      }
+    } catch (error) {
+      console.error("Error verifying OTP:", error);
+      res.status(500).json({ message: "Error verifying OTP" });
+    }
+  }
+
+
+// Change Password Controller
+exports.changePassword = async (req, res) => {
+    const { newPassword, confirmPassword } = req.body;
+  
+    // Check if both passwords are provided and match
+    if (!newPassword || !confirmPassword) {
+      return res.status(400).json({ message: "Both newPassword and confirmPassword are required" });
+    }
+  
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ message: "Passwords do not match" });
+    }
+  
+    try {
+      // Hash the new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+  
+      // Find the authenticated user and update the password
+      const user = await User.findById(req.user.userId); // Assumes user ID is available in req.user
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+  
+      user.password = hashedPassword; // Set the new hashed password
+      await user.save(); // Save the updated user object
+  
+      res.status(200).json({ message: "Password changed successfully" });
+    } catch (error) {
+      console.error("Error changing password:", error);
+      res.status(500).json({ message: "Error changing password" });
+    }
+  };
 
 
 
@@ -586,7 +749,6 @@ exports.getTestCompletionPercentage = async (req, res) => {
         res.status(500).json({ message: 'Could not calculate test completion percentage', error });
     }
 };
-
 
 
 
