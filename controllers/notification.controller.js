@@ -1,4 +1,4 @@
-const Notification = require("../models/notification.model");
+const notificationModel = require("../models/notification.model");
 const { ApiError } = require("../utils/ApiError");
 const { ApiResponse } = require("../utils/ApiResponse");
 
@@ -8,7 +8,7 @@ const markNotificationAsSeen = async (req, res) => {
     const userId = req.user.userId; // Get logged-in user ID from token
 
     // Find the notification and verify it belongs to the user
-    const notification = await Notification.findOne({
+    const notification = await notificationModel.findOne({
       _id: notificationId,
       recipient: userId,
     });
@@ -32,12 +32,12 @@ const markNotificationAsSeen = async (req, res) => {
 
 const getUnseenNotifications = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 4;
     const startIndex = (page - 1) * limit;
 
-    const notifications = await Notification.find({
+    const notifications = await notificationModel.find({
       recipient: userId,
       isSeen: false,
     })
@@ -45,7 +45,7 @@ const getUnseenNotifications = async (req, res) => {
       .skip(startIndex)
       .limit(limit);
 
-    const totalNotifications = await Notification.countDocuments({
+    const totalNotifications = await notificationModel.countDocuments({
       recipient: userId,
       isSeen: false,
     });
