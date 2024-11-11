@@ -70,7 +70,7 @@ router.post('/test/:id/submit',authenticate, userController.submitTest);
 router.get('/practicetests/subject/:subject', userController.getPracticeTestsBySubject);
 
 // Route to calculate and display the score of a practice test
-router.post('/practicetests/:testId/score', userController.calculatePracticeTestScore);
+router.post('/practicetests/:testId/score',authenticate, userController.calculatePracticeTestScore);
 
 // filter userscore
 router.get('/top-users', userController.getTopUsersByAverageScore);

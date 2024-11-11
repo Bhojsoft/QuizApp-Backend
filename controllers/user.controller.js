@@ -253,9 +253,10 @@ exports.getPracticeTestsBySubject = async (req, res) => {
 
 // Calculate and Display Practice Test Score
 exports.calculatePracticeTestScore = async (req, res) => {
+    const baseUrl = req.protocol + "://" + req.get("host");
     const { testId } = req.params; // Retrieve the test ID from the URL parameters
     const { userAnswers } = req.body; // Get the user's answers from the request body
-
+    const userId = req.user.userId;
     try {
         // Find the practice test by ID
         const practiceTest = await PracticeTest.findById(testId);
@@ -275,6 +276,8 @@ exports.calculatePracticeTestScore = async (req, res) => {
             }
         });
 
+        const user = await userModel.findById(userId).select("name profile_image")
+
         // Prepare the result data
         const result = {
             testTitle: practiceTest.title,
@@ -284,11 +287,17 @@ exports.calculatePracticeTestScore = async (req, res) => {
             percentage: (score / totalMarks) * 100,
             passingMarks: practiceTest.passingMarks,
             passed: score >= practiceTest.passingMarks,
+            userName: user.name,
+            profile_image: user?.profile_image
+                ? `${baseUrl}/${user?.profile_image?.replace(/\\/g, "/")}`
+                : "",
         };
 
         // Send the result in the response
         res.status(200).json(result);
     } catch (error) {
+        console.log(error);
+
         res.status(500).json({ message: 'An error occurred while calculating the score.', error });
     }
 };
