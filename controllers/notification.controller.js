@@ -1,4 +1,5 @@
 const notificationModel = require("../models/notification.model");
+const { formatDate } = require("../Services/service");
 const { ApiError } = require("../utils/ApiError");
 const { ApiResponse } = require("../utils/ApiResponse");
 
@@ -55,9 +56,32 @@ const getUnseenNotifications = async (req, res) => {
         .status(200)
         .json(new ApiResponse(200, "No new notifications.", []));
     }
+    const data = notifications.map((notification) => {
+      return {
+        _id: notification?._id,
+        recipient: notification?.recipient,
+        message: notification?.message,
+        activityType: notification?.activityType,
+        relatedId: notification?.relatedId,
+        isSeen: notification?.isSeen,
+        createdAt: formatDate(notification?.createdAt),
+        createdAtTime: notification?.createdAt?.toLocaleTimeString("en-IN", {
+          timeZone: "Asia/Kolkata",
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        seenAt: formatDate(notification?.seenAt),
+        seenAtTime: notification?.seenAt?.toLocaleTimeString("en-IN", {
+          timeZone: "Asia/Kolkata",
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      };
+    });
+
 
     res.status(200).json({
-      notifications,
+      notifications: data,
       pagination: {
         totalItems: totalNotifications,
         currentPage: page,
