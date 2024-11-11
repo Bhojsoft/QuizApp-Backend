@@ -385,6 +385,7 @@ exports.getProfile = async (req, res) => {
 };
 
 // Controller to update user details
+// Controller to update user details
 exports.updateUser = async (req, res) => {
     try {
         const userId = req.user.userId;
@@ -398,7 +399,7 @@ exports.updateUser = async (req, res) => {
         // Extract updated data from request body and profile image from the request
         const updateData = {
             name: req.body.name || existingUser.name,
-            email:  existingUser.email,
+            email: existingUser.email,
             phone: req.body.phone || existingUser.phone,
             address: req.body.address || existingUser.address,
             pin_code: req.body.pin_code || existingUser.pin_code,
@@ -408,49 +409,42 @@ exports.updateUser = async (req, res) => {
             college_name: req.body.college_name || existingUser.college_name,
             experience: req.body.experience || existingUser.experience,
             class: req.body.class || existingUser.class,
-
-        }
-        const profile_image = req.file ? req.file.path : existingUser.profile_image; // Retain current image if not updated
+            profile_image: req.file ? req.file.path : existingUser.profile_image // Retain current image if not updated
+        };
 
         // Check if password is being updated and hash it if provided
-        if (updateData.password) {
+        if (req.body.password) {
             const salt = await bcrypt.genSalt(10);
-            updateData.password = await bcrypt.hash(updateData.password, salt); // Hash the new password
+            updateData.password = await bcrypt.hash(req.body.password, salt); // Hash the new password
         }
-
-        // Merge existing data with updated data; keep existing fields if not provided
-        const data = {
-            updateData,              // Overwrite with new data
-            profile_image               // Ensure the profile image is updated correctly
-        };
 
         // Find the user by ID and update the document
         const updatedUser = await User.findByIdAndUpdate(
             userId,
-            { $set: data }, // Update the merged data
+            { $set: updateData }, // Update with new data
             { new: true, runValidators: true } // Return the updated document and run validation
         );
 
         // Generate notification
-
         const notification = new notificationModel({
             recipient: updatedUser._id,
-            message: `Hello ${updatedUser.name}, Your Profile updated successfully :).`,
+            message: `Hello ${updatedUser.name}, Your profile was updated successfully!`,
             activityType: "PROFILE_UPDATED",
             relatedId: updatedUser._id,
         });
         await notification.save();
 
-
         res.status(200).json({
             message: 'User updated successfully',
-
+            updatedUser, // Include updated user data in the response
+            notification
         });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error updating user', error });
     }
 };
+
 
 
 
