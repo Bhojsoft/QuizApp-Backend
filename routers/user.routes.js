@@ -77,6 +77,6 @@ router.get('/top-users', userController.getTopUsersByAverageScore);
 
 
 // Get test completion percentage for a user
-router.get('/:userId/test-completion', userController.getTestCompletionPercentage);
+router.get('/test-completion', authenticate,userController.getTestCompletionPercentage);
 
 module.exports = router;

@@ -25,4 +25,8 @@ router.get('/:testId',authenticateToken,  adminController.getTestById);
 
 router.post('/login', adminController.loginAdmin);
 
+// Create a new job post
+router.post('/jobs', authenticateToken, adminController.createJob);
+
+
 module.exports = router;

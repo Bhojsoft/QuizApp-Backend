@@ -29,6 +29,9 @@ app.use("/course", courseRoute);
 const reviewRoute = require("./routers/review.router");
 app.use("/review", reviewRoute);
 
+
+
+
 const globalSearch = require("./routers/serach.router");
 app.use("/search", globalSearch);
 app.get("/", (req, res) => {

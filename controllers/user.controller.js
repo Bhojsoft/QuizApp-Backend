@@ -291,6 +291,7 @@ exports.calculatePracticeTestScore = async (req, res) => {
             profile_image: user?.profile_image
                 ? `${baseUrl}/${user?.profile_image?.replace(/\\/g, "/")}`
                 : "",
+
         };
 
         // Send the result in the response
@@ -382,9 +383,17 @@ exports.getProfile = async (req, res) => {
             name: user.name,
             email: user.email,
             phone: user.phone,
+            address: user.address,
+            city: user.city,
+            state: user.state,
+            country: user.country,
+            college_name: user.college_name,
+            experience: user.experience,
             profile_image: user?.profile_image
                 ? `${baseUrl}/${user?.profile_image.replace(/\\/g, "/")}`
                 : "",
+
+
 
         });
     } catch (error) {
@@ -393,7 +402,7 @@ exports.getProfile = async (req, res) => {
     }
 };
 
-// Controller to update user details
+
 // Controller to update user details
 exports.updateUser = async (req, res) => {
     try {
@@ -737,34 +746,44 @@ exports.getTopUsersByAverageScore = async (req, res) => {
     }
 };
 
+
+
 // Calculate the percentage of tests completed by the user
 exports.getTestCompletionPercentage = async (req, res) => {
     try {
-        const userId = req.params.userId;
-
+        // const { userId } = req.params;
+        const userId = req.user.userId;
         // Find the user by ID
         const user = await User.findById(userId).populate('testsTaken.testId');
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
 
-        if (!user) return res.status(404).json({ message: 'User not found' });
-
-        // Fetch the total number of tests assigned (assuming Test model contains all tests assigned)
+        // Get the total number of available tests
         const totalTests = await Test.countDocuments();
+        if (totalTests === 0) {
+            return res.status(200).json({ message: 'No tests available.', completionPercentage: 0 });
+        }
 
-        if (totalTests === 0) return res.status(200).json({ message: 'No tests assigned yet', completionPercentage: 0 });
 
-        // Calculate the percentage of completed tests
-        const testsTakenCount = user.testsTaken.length;
-        const completionPercentage = (testsTakenCount / totalTests) * 100;
 
-        res.status(200).json({
-            message: 'Test completion percentage calculated successfully',
-            completionPercentage: completionPercentage.toFixed(2) // Format to 2 decimal places
+        // Calculate the number of tests completed
+        const completedTests = user.testsTaken.filter(test => test.score !== null && test.score !== undefined).length;
+
+
+        // Calculate the percentage of tests completed
+        const completionPercentage = ((completedTests / totalTests) * 100).toFixed(2);
+
+        // Respond with the calculated percentage
+        return res.status(200).json({
+            message: 'Test completion percentage calculated successfully.',
+            completionPercentage: `${completionPercentage}%`
         });
     } catch (error) {
-        res.status(500).json({ message: 'Could not calculate test completion percentage', error });
+        console.error('Error calculating test completion percentage:', error);
+        return res.status(500).json({ message: 'Internal server error' });
     }
 };
-
 
 
 

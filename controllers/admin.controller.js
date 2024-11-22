@@ -2,6 +2,7 @@ const Test = require('../models/Test');
 const Admin = require('../models/admin');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const Job = require('../models/jobportal.model')
 
 // Create a test
 exports.createTest = async (req, res) => {
@@ -170,6 +171,23 @@ exports.loginAdmin = async (req, res) => {
     res.status(200).json({ token ,  message: 'Login successful!'});
   } catch (err) {
     res.status(500).json({ message: 'Error logging in', error: err.message });
+  }
+};
+
+exports.createJob = async (req, res) => {
+  try {
+      console.log("Creating job with data:", req.body);
+      const job = new Job({
+          ...req.body,
+          createdBy: req.user._id,
+      });
+      console.log("Job initialized:", job);
+
+      const savedJob = await job.save();
+      res.status(201).json(savedJob);
+  } catch (error) {
+      console.error("Error occurred while saving job:", error);
+      res.status(400).json({ error: error.message });
   }
 };
 
