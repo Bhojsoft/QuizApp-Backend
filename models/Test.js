@@ -20,6 +20,7 @@ const testSchema = new mongoose.Schema({
   totalMarks: { type: Number },
   passingMarks: { type: Number },
   sample_question:{type: String},
+  views: { type: Number, default: 0 }, // Popularity metric
   reviews: [reviewSchema],
 }, {
   timestamps: true

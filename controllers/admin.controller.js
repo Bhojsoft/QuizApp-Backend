@@ -192,5 +192,28 @@ exports.createJob = async (req, res) => {
 };
 
 
+// Controller to get top-picked tests
+exports.getTopPickedTests = async (req, res) => {
+  try {
+      // Find the top tests sorted by views in descending order, limit to top 10
+      const topTests = await Test.find()
+      .select("-questions")
+          .sort({ views: -1 }) // Sort by views in descending order
+          .limit(10);
+      res.status(200).json({
+          success: true,
+          message: 'Top picked tests retrieved successfully.',
+          data: topTests,
+      });
+  } catch (error) {
+      res.status(500).json({
+          success: false,
+          message: 'An error occurred while fetching top tests.',
+          error: error.message,
+      });
+  }
+};
+
+
 
 

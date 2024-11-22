@@ -357,7 +357,7 @@ exports.loginUser = async (req, res) => {
         const token = jwt.sign({ userId: user._id }, JWT_SECRET);
         const notification = new notificationModel({
             recipient: user._id,
-            studentName:user.name,
+            studentName: user.name,
             message: `Welcome back ${user.name} , Login successful.`,
             activityType: "LOGIN_SUCCESS",
             relatedId: user._id,
