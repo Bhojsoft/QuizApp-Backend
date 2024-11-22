@@ -204,6 +204,7 @@ exports.submitTest = async (req, res) => {
         // Create notification
         const notification = new notificationModel({
             recipient: user._id,
+            studentName:user.name,
             message: `Hello ${user.name}, your test on the subject "${test.subject}" has been submitted successfully!`,
             activityType: "TEST_SUBMIT",
             relatedId: user._id,
@@ -356,6 +357,7 @@ exports.loginUser = async (req, res) => {
         const token = jwt.sign({ userId: user._id }, JWT_SECRET);
         const notification = new notificationModel({
             recipient: user._id,
+            studentName:user.name,
             message: `Welcome back ${user.name} , Login successful.`,
             activityType: "LOGIN_SUCCESS",
             relatedId: user._id,
@@ -446,6 +448,7 @@ exports.updateUser = async (req, res) => {
         // Generate notification
         const notification = new notificationModel({
             recipient: updatedUser._id,
+            studentName:updatedUser.name,
             message: `Hello ${updatedUser.name}, Your profile was updated successfully!`,
             activityType: "PROFILE_UPDATED",
             relatedId: updatedUser._id,
