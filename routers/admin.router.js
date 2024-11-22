@@ -30,7 +30,7 @@ router.post('/login', adminController.loginAdmin);
 router.post('/jobs', authenticateToken, adminController.createJob);
 
 // Route to get top-picked tests
-router.get('/s/top-tests1',  adminController.getTopPickedTests);
+router.get('/top-picked/top-tests1',  adminController.getTopPickedTests);
 
 
 module.exports = router;

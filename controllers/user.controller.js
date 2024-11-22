@@ -161,7 +161,6 @@ exports.submitTest = async (req, res) => {
 
         // Validate test existence
         const test = await Test.findById(testId);
-
         if (!test) {
             return res.status(404).json({ error: 'Test not found' });
         }
@@ -171,9 +170,16 @@ exports.submitTest = async (req, res) => {
             return res.status(400).json({ error: 'Answers must be provided as an array.' });
         }
         if (!userId) {
-            return res.status(400).json({ error: 'user ID is required.' });
+            return res.status(400).json({ error: 'User ID is required.' });
         }
 
+        // Check if the user has already taken the test
+        const user = await userModel.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found.' });
+        }
+
+        const existingTest = user.testsTaken.find((test) => test.testId.toString() === testId);
         let score = 0;
         const totalQuestions = test.questions.length;
 
@@ -189,25 +195,23 @@ exports.submitTest = async (req, res) => {
 
         const finalScore = parseFloat(((score / totalQuestions) * 100).toFixed(2));
 
-
-        // Update student's test history
-        const user = await userModel.findByIdAndUpdate(
-            userId,
-            { $push: { testsTaken: { testId, score: finalScore } } },
-            { new: true }
-        );
-
-        if (!user) {
-            return res.status(404).json({ error: 'user not found' });
+        if (existingTest) {
+            // Update the score if the test was already taken
+            existingTest.score = finalScore;
+        } else {
+            // Add the test if not already taken
+            user.testsTaken.push({ testId, score: finalScore });
         }
+
+        await user.save();
 
         // Create notification
         const notification = new notificationModel({
             recipient: user._id,
-            studentName:user.name,
+            studentName: user.name,
             message: `Hello ${user.name}, your test on the subject "${test.subject}" has been submitted successfully!`,
             activityType: "TEST_SUBMIT",
-            relatedId: user._id,
+            relatedId: testId,
         });
 
         await notification.save();
@@ -222,7 +226,7 @@ exports.submitTest = async (req, res) => {
                 ? `${baseUrl}/${user?.profile_image?.replace(/\\/g, "/")}`
                 : "",
             correctAnswers: score,
-            wrongAnswers: totalQuestions - score
+            wrongAnswers: totalQuestions - score,
         });
     } catch (error) {
         console.error(error);
