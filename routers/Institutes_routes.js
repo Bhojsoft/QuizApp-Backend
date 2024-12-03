@@ -1,12 +1,19 @@
-// routes/instituteRoutes.js
 const express = require('express');
 const router = express.Router();
-const { createInstitute, addTeacherToInstitute, addStudentToInstitute, getTestsForInstitute } = require('../controllers/instituteController');
-const { authenticate } = require('../middleware/authMiddleware');
+const { authenticateToken } = require('../middlewares/authMiddleware');
+const {
+  createInstitute,
+  loginInstitute,
+  addTeacherToInstitute,
+  addStudentToInstitute,
+  getTestsForInstitute
+} = require('../controllers/Institutes_contoller');
 
-router.post('/create', authenticate, createInstitute);
-router.post('/add-teacher', authenticate, addTeacherToInstitute);
-router.post('/add-student', authenticate, addStudentToInstitute);
-router.get('/:instituteId/tests', authenticate, getTestsForInstitute);
+// Protect routes with the authentication middleware
+router.post('/create',  createInstitute);
+router.post('/login', loginInstitute);
+router.post('/add-teacher', authenticateToken, addTeacherToInstitute);
+router.post('/add-student', authenticateToken, addStudentToInstitute);
+router.get('/:instituteId/tests', authenticateToken, getTestsForInstitute);
 
 module.exports = router;

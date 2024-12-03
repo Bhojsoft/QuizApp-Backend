@@ -1,34 +1,54 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const Institute = require('.../models/institute');
+const Institute = require('../models/Institute');
 const Admin = require('../models/admin');
-const Student = require('../models/student');
+//const Student = require('../models/student');
+const { v4: uuidv4 } = require('uuid');
 
 
 
-// JWT secret key
 const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key';
 
 // Register a new institute
+// Register a new institute
 exports.createInstitute = async (req, res) => {
   try {
-    const { name, email, password, adminId } = req.body;
+    const { name, email, password } = req.body;
 
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create the institute
-    const institute = new Institute({
+    // Create a new Institute instance
+    const newInstitute = new Institute({
       name,
       email,
       password: hashedPassword,
-      admin: adminId,
-      isApproved: false, // Default to false
+      isApproved: false, // Default value
     });
-    await institute.save();
 
-    res.status(201).json({ message: 'Institute created successfully. Awaiting approval.', institute });
+    // Save the new institute to the database
+    await newInstitute.save();
+
+    // Generate a token for the newly created institute
+    const token = jwt.sign(
+      { id: newInstitute._id, role: 'institute' },
+      JWT_SECRET,
+      { expiresIn: '1h' } // Token expiration time
+    );
+
+    // Send response with the token and institute details
+    res.status(201).json({
+      message: 'Institute created successfully. Awaiting approval.',
+      token, // Include the generated token in the response
+      institute: {
+        id: newInstitute.id,
+        name: newInstitute.name,
+        email: newInstitute.email,
+        isApproved: newInstitute.isApproved,
+      },
+    });
   } catch (error) {
+    console.error('Error creating institute:', error.message);
     res.status(400).json({ error: error.message });
   }
 };
@@ -45,7 +65,7 @@ exports.loginInstitute = async (req, res) => {
       return res.status(404).json({ message: 'Institute not found' });
     }
 
-    // Compare the password
+    // Verify the password
     const isMatch = await bcrypt.compare(password, institute.password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
@@ -54,11 +74,24 @@ exports.loginInstitute = async (req, res) => {
     // Generate a token
     const token = jwt.sign({ id: institute._id, role: 'institute' }, JWT_SECRET, { expiresIn: '1h' });
 
-    res.status(200).json({ message: 'Login successful', token, institute });
+    // Send response with token and institute details, including custom ID
+    res.status(200).json({
+      message: 'Login successful!',
+      token,
+      institute: {
+        id: institute.id, // Return the custom UUID field
+        name: institute.name,
+        email: institute.email,
+        isApproved: institute.isApproved,
+      }
+    });
   } catch (error) {
+    console.error('Error during login:', error.message);
     res.status(500).json({ error: error.message });
   }
 };
+
+
 
 // Add a teacher to an institute
 exports.addTeacherToInstitute = async (req, res) => {

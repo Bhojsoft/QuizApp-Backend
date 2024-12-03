@@ -25,6 +25,8 @@ router.get('/tests',authenticateToken, adminController.getTestsByAdmin);
 router.get('/:testId',authenticateToken,  adminController.getTestById);
 
 // admin login 
+// Admin Registration
+router.post('/register', upload.single("admin_image"), adminController.registerAdmin);
 
 router.post('/login', adminController.loginAdmin);
 

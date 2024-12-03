@@ -2,7 +2,8 @@ const Test = require('../models/Test');
 const Admin = require('../models/admin');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const Job = require('../models/jobportal.model')
+const Job = require('../models/jobportal.model');
+const Institute = require('../models/Institute');
 
 // Create a test
 exports.createTest = async (req, res) => {
@@ -147,6 +148,47 @@ exports.getTestById = async (req, res) => {
 };
 
 
+
+exports.registerAdmin = async (req, res) => {
+  const { name, email, password, role, admin_image } = req.body;
+
+  try {
+    // Check if admin with the same email already exists
+    const existingAdmin = await Admin.findOne({ email });
+    if (existingAdmin) {
+      return res.status(400).json({ message: 'Admin with this email already exists.' });
+    }
+
+    // Create a new admin
+    const newAdmin = new Admin({
+      name,
+      email,
+      password,
+      role, // Optional; will default to 'sub-admin' if not provided
+      admin_image,
+    });
+
+    // Save the new admin to the database
+    const savedAdmin = await newAdmin.save();
+    res.status(201).json({ 
+      message: 'Admin registered successfully!', 
+      admin: { 
+        id: savedAdmin._id,
+        name: savedAdmin.name,
+        email: savedAdmin.email,
+        role: savedAdmin.role
+      } 
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Error registering admin.', error: err.message });
+  }
+};
+
+
+
+
+
+
 // Login user
 exports.loginAdmin = async (req, res) => {
   const { email, password } = req.body;
@@ -156,20 +198,37 @@ exports.loginAdmin = async (req, res) => {
     // Find the user by email
     const admin = await Admin.findOne({ email });
     if (!admin) {
-      return res.status(400).json({ message: 'Invalid email or password.' });
+      return res.status(401).json({ message: 'Invalid email or password.' });
     }
 
     // Compare the entered password with the stored hashed password
     const isMatch = await admin.comparePassword(password);
     if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid email or password.' });
+      return res.status(401).json({ message: 'Invalid email or password.' });
     }
 
-    // Generate JWT token
-    const token = jwt.sign({ userId: admin._id }, JWT_SECRET);
+    // Generate JWT token with an expiration time of 1 hour
+    const token = jwt.sign(
+      { userId: admin._id, role: admin.role }, // Include user ID and role in the payload
+      JWT_SECRET,
+      { expiresIn: '1h' } // Token expiration time (1 hour)
+    );
 
-    res.status(200).json({ token ,  message: 'Login successful!'});
+    // Optionally include admin details (excluding sensitive information)
+    const adminData = {
+      id: admin._id,
+      name: admin.name,
+      email: admin.email,
+      role: admin.role,
+    };
+
+    res.status(200).json({
+      token,
+      admin: adminData, // Send user details along with the token
+      message: 'Login successful!',
+    });
   } catch (err) {
+    console.error('Error logging in:', err); // Log the error for debugging
     res.status(500).json({ message: 'Error logging in', error: err.message });
   }
 };
@@ -220,24 +279,25 @@ exports.getTopPickedTests = async (req, res) => {
 
 exports.approveInstitute = async (req, res) => {
   try {
-    const { instituteId } = req.body;
+      const { instituteId } = req.body;
+      console.log(req.user); // Log user details for debugging
 
-    if (req.user.role !== 'main-admin') {
-      return res.status(403).json({ message: 'Permission denied' });
-    }
+      if (req.user.role !== 'main-admin') {
+          return res.status(403).json({ message: 'Permission denied' });
+      }
 
-    const institute = await Institute.findByIdAndUpdate(
-      instituteId,
-      { isApproved: true },
-      { new: true }
-    );
+      const institute = await Institute.findByIdAndUpdate(
+          instituteId,
+          { isApproved: true },
+          { new: true }
+      );
 
-    if (!institute) {
-      return res.status(404).json({ message: 'Institute not found' });
-    }
+      if (!institute) {
+          return res.status(404).json({ message: 'Institute not found' });
+      }
 
-    res.status(200).json({ message: 'Institute approved successfully', institute });
+      res.status(200).json({ message: 'Institute approved successfully', institute });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+      res.status(500).json({ error: error.message });
   }
 };
