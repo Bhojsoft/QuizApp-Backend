@@ -5,6 +5,7 @@ const adminSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true }, // Add password field
+  institute: { type: mongoose.Schema.Types.ObjectId, ref: 'Institute' },
   testsCreated: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Test' }],
   admin_image:{ type: String, required: true}
 });

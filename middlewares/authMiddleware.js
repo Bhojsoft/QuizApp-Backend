@@ -4,6 +4,7 @@ const Admin = require('../models/admin');
 // Middleware to authenticate the user
 const authenticate = (req, res, next) => {
     try {
+
         // Get the token from the Authorization header (Expected format: "Bearer <token>")
         const authHeader = req.headers['authorization'];
         if (!authHeader) {
@@ -15,6 +16,7 @@ const authenticate = (req, res, next) => {
             return res.status(401).json({ message: 'Unauthorized: No token provided' });
         }
 
+        
         // Verify the token
         jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
             if (err) {
@@ -23,6 +25,7 @@ const authenticate = (req, res, next) => {
                 }
                 return res.status(403).json({ message: 'Forbidden: Invalid token' });
             }
+
 
             // Attach decoded user data to the request object
             req.user = decoded;

@@ -4,6 +4,8 @@ const adminController = require('../controllers/admin.controller');
 const {authenticateToken} = require('../middlewares/authMiddleware');
 const { authenticate } = require('../middlewares/authMiddleware');
 const upload = require('../middlewares/multerConfig');
+
+
 // Middleware for checking Admin role (this should be expanded in practice)
 const isAdmin = async (req, res, next) => {
   // This is a placeholder; you'd typically verify the role from the request or token
@@ -31,6 +33,10 @@ router.post('/jobs', authenticateToken, adminController.createJob);
 
 // Route to get top-picked tests
 router.get('/top-picked/top-tests1',  adminController.getTopPickedTests);
+
+//Chaceking institue improve or not
+router.post('/approve-institute', authenticateToken, adminController.approveInstitute);
+
 
 
 module.exports = router;

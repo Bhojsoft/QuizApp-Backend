@@ -218,3 +218,26 @@ exports.getTopPickedTests = async (req, res) => {
 
 
 
+exports.approveInstitute = async (req, res) => {
+  try {
+    const { instituteId } = req.body;
+
+    if (req.user.role !== 'main-admin') {
+      return res.status(403).json({ message: 'Permission denied' });
+    }
+
+    const institute = await Institute.findByIdAndUpdate(
+      instituteId,
+      { isApproved: true },
+      { new: true }
+    );
+
+    if (!institute) {
+      return res.status(404).json({ message: 'Institute not found' });
+    }
+
+    res.status(200).json({ message: 'Institute approved successfully', institute });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
