@@ -5,6 +5,7 @@ const userroute = require("./routers/user.routes");
 const adminRouter = require("./routers/admin.router");
 const practicetestRouter = require("./routers/practicetest.router");
 const instituteRoutes = require("./routers/Institutes_routes"); 
+const teacherRoutes = require('./routers/Teacher.js');
 require("dotenv").config();
 
 const bodyparser = require("body-parser");
@@ -30,6 +31,7 @@ app.use("/course", courseRoute);
 const reviewRoute = require("./routers/review.router");
 app.use("/review", reviewRoute);
 app.use("/api/institute", instituteRoutes);
+app.use('/api/teachers', teacherRoutes);
 
 
 

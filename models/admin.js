@@ -13,6 +13,7 @@ const adminSchema = new mongoose.Schema({
   },
   institute: { type: mongoose.Schema.Types.ObjectId, ref: 'Institute' },
   testsCreated: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Test' }],
+  students: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Student' }], 
   admin_image: { type: String, required: true }
 });
 

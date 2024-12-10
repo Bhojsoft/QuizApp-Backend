@@ -14,7 +14,13 @@ const instituteSchema = new mongoose.Schema({
   admin: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
   isApproved: { type: Boolean, default: false },
   teachers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Teacher' }],
+  testsCreated: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Test' }],
   students: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Student' }],
+  role: {
+    type: String,
+    enum: ['sub-admin'], // Example roles
+  
+  }
 });
 
 // Export the Institute model with the custom `id` field

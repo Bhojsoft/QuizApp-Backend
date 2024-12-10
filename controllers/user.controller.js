@@ -11,6 +11,8 @@ require("dotenv").config();
 const { ApiError } = require("../utils/ApiError");
 const { ApiResponse } = require("../utils/ApiResponse");
 const otpStore = {};
+const Institute = require('../models/Institute');// Adjust the path according to your file structure
+
 
 // Controller to get  tests by subject and retrieve test_image
 exports.getTestCountBySubject = async (req, res) => {
@@ -128,26 +130,30 @@ exports.getTest = async (req, res) => {
 };
 
 
+
 // Get a specific test Quiz
 exports.getTestQuiz = async (req, res) => {
     try {
         const testId = req.params.id;
-        const test = await Test.findById(testId);
+
+        // Fetch the test and populate the questions field
+        const test = await Test.findById(testId).populate({
+            path: 'questions',
+            select: 'question options', // Exclude `correctAnswer` for sanitization
+        });
 
         if (!test) {
             return res.status(404).json({ error: 'Test not found' });
         }
 
-        // Send the test without answers to prevent cheating
-        const sanitizedTest = {
-            questions: test.questions
-        };
-
-        res.status(200).json(sanitizedTest);
+        // Send the sanitized test data
+        res.status(200).json({ success: true, data: test });
     } catch (error) {
+        console.error('Error fetching test:', error);
         res.status(500).json({ error: 'Failed to fetch test data' });
     }
 };
+
 
 
 // submit the test
@@ -315,26 +321,46 @@ exports.calculatePracticeTestScore = async (req, res) => {
 // JWT secret (store this in environment variables)
 const JWT_SECRET = process.env.JWT_SECRET || 'bhojsoft';
 // Register a new user
+
 exports.registerUser = async (req, res) => {
-    const { name, email, password, phone } = req.body;
+    const { name, email, password, phone, college_name, experience, class: studentClass, instituteId } = req.body;
 
     try {
+        // Check if the institute exists and is approved
+        const institute = await Institute.findById(instituteId);
+        if (!institute || !institute.isApproved) {
+            return res.status(400).json({ message: 'Institute not found or not approved' });
+        }
+
         // Check if the email is already in use
         let user = await User.findOne({ email });
         if (user) {
             return res.status(400).json({ message: 'Email already in use.' });
         }
 
-        // Create a new user
-        user = new User({ name, email, password, phone });
+        // Create a new user and associate them with the institute
+        user = new User({
+            name,
+            email,
+            password,
+            phone,
+            college_name,
+            experience,
+            class: studentClass, // Use renamed variable
+            instituteId, // Associate with the institute
+        });
+
+        // Save the user
         await user.save();
 
+        // Add the student to the institute's list of students
+        institute.students.push(user._id);
+        await institute.save();
+
         // Generate JWT token
-        const token = jwt.sign({ userId: user._id }, JWT_SECRET);
+        const token = jwt.sign({ userId: user._id, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
 
-
-
-        res.status(201).json({ token, message: 'Register successful!' });
+        res.status(201).json({ token, message: 'Registration successful!' });
     } catch (err) {
         res.status(500).json({ message: 'Error registering user', error: err.message });
     }
@@ -357,22 +383,45 @@ exports.loginUser = async (req, res) => {
             return res.status(400).json({ message: 'Invalid email or password.' });
         }
 
-        // Generate JWT token
-        const token = jwt.sign({ userId: user._id }, JWT_SECRET);
+        // Verify if the user's associated institute is approved
+        const institute = await Institute.findById(user.instituteId);
+        if (!institute || !institute.isApproved) {
+            return res.status(400).json({ message: 'Your institute is not approved or not found.' });
+        }
+
+        // Generate JWT token with the user ID and role
+        const token = jwt.sign({ userId: user._id, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
+
+        // Create a notification for successful login
         const notification = new notificationModel({
             recipient: user._id,
             studentName: user.name,
-            message: `Welcome back ${user.name} , Login successful.`,
+            message: `Welcome back ${user.name}, Login successful.`,
             activityType: "LOGIN_SUCCESS",
             relatedId: user._id,
         });
         await notification.save();
 
-        res.status(200).json({ token, message: 'Login successful!' });
+        // Send response with token and institute details
+        res.status(200).json({
+            token,
+            message: 'Login successful!',
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                institute: {
+                    id: institute._id,
+                    name: institute.name,
+                    isApproved: institute.isApproved,
+                },
+            },
+        });
     } catch (err) {
         res.status(500).json({ message: 'Error logging in', error: err.message });
     }
 };
+
 
 
 // Get user profile

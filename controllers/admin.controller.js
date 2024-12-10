@@ -4,20 +4,15 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const Job = require('../models/jobportal.model');
 const Institute = require('../models/Institute');
+const Question = require('../models/question.model');
 
 // Create a test
 exports.createTest = async (req, res) => {
   try {
-    const { title, subject, questions, startTime, duration, createdBy, class: testClass, description, totalMarks, passingMarks, sample_question } = req.body;
-
-    // Save image path if uploaded
-    const test_image = req.file ? req.file.path : undefined;
-
-    // Create a new test document with the provided data, including the image path
-    const test = new Test({
+    const {
       title,
       subject,
-      questions,
+      questions, // Expect an array of question objects
       startTime,
       duration,
       createdBy,
@@ -25,24 +20,61 @@ exports.createTest = async (req, res) => {
       description,
       totalMarks,
       passingMarks,
-      test_image, // Store the image path here,
       sample_question,
-      
+      visibility,
+    } = req.body;
+
+    const test_image = req.file ? req.file.path : undefined;
+
+    // Save the questions to the database if they are not already saved
+    const questionIds = [];
+    for (const questionData of questions) {
+      const question = new Question({
+        question: questionData.question,
+        options: questionData.options,
+        correctAnswer: questionData.correctAnswer,
+      });
+
+      const savedQuestion = await question.save();
+      questionIds.push(savedQuestion._id);
+    }
+
+    // Create the test with references to the saved questions
+    const test = new Test({
+      title,
+      subject,
+      questions: questionIds, // Store question IDs
+      startTime,
+      duration,
+      createdBy,
+      class: testClass,
+      description,
+      totalMarks,
+      passingMarks,
+      test_image,
+      sample_question,
+      visibility,
     });
 
-    await test.save();
+    const savedTest = await test.save();
 
-    // Validate that the user (createdBy) exists before updating
+    // Validate that the user (createdBy) exists
     const admin = await Admin.findById(createdBy);
     if (!admin) {
       return res.status(404).json({ error: "User not found" });
     }
 
     // Update the user's testsCreated array
-    await Admin.findByIdAndUpdate(createdBy, { $push: { testsCreated: test._id } });
+    await Admin.findByIdAndUpdate(createdBy, { $push: { testsCreated: savedTest._id } });
 
-    // Send a success response with the created test
-    res.status(201).json(test);
+    // Populate the questions field to include actual data
+    const populatedTest = await Test.findById(savedTest._id).populate('questions');
+
+    // Send a success response with the populated test
+    res.status(201).json({
+      message: "Test created successfully",
+      test: populatedTest,
+    });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -208,11 +240,16 @@ exports.loginAdmin = async (req, res) => {
     }
 
     // Generate JWT token with an expiration time of 1 hour
-    const token = jwt.sign(
-      { userId: admin._id, role: admin.role }, // Include user ID and role in the payload
-      JWT_SECRET,
-      { expiresIn: '1h' } // Token expiration time (1 hour)
-    );
+    const generateToken = (user) => {
+      return jwt.sign(
+        { userId: user._id, role: user.role }, // Ensure `user.role` is correctly set (e.g., 'main-admin' or 'sub-admin')
+        JWT_SECRET,
+        { expiresIn: '1h' }
+      );
+    };
+
+    // Generate the token for the logged-in admin
+    const token = generateToken(admin);
 
     // Optionally include admin details (excluding sensitive information)
     const adminData = {
@@ -222,9 +259,10 @@ exports.loginAdmin = async (req, res) => {
       role: admin.role,
     };
 
+    // Send the response with the token and user details
     res.status(200).json({
-      token,
-      admin: adminData, // Send user details along with the token
+      token, // Include the generated token here
+      admin: adminData,
       message: 'Login successful!',
     });
   } catch (err) {
@@ -232,6 +270,7 @@ exports.loginAdmin = async (req, res) => {
     res.status(500).json({ message: 'Error logging in', error: err.message });
   }
 };
+
 
 exports.createJob = async (req, res) => {
   try {
@@ -299,5 +338,23 @@ exports.approveInstitute = async (req, res) => {
       res.status(200).json({ message: 'Institute approved successfully', institute });
   } catch (error) {
       res.status(500).json({ error: error.message });
+  }
+};
+
+// Fetch the test and populate the questions field
+exports.getTest = async (req, res) => {
+  try {
+    const testId = req.params.id; // Assuming the test ID is passed as a parameter
+
+    // Find the test by ID and populate the 'questions' field
+    const test = await Test.findById(testId).populate('questions');
+
+    if (!test) {
+      return res.status(404).json({ error: 'Test not found' });
+    }
+
+    res.status(200).json(test);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
   }
 };

@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
+
 // Define User Schema
 const userSchema = new mongoose.Schema({
     name: { type: String, required: true },
@@ -11,11 +12,12 @@ const userSchema = new mongoose.Schema({
     pin_code: { type: String },
     city: { type: String },
     state: { type: String },
-    country: { String },
+    country: { type: String },
     college_name: { type: String },
     experience: { type: String },
     class: { type: String },
     profile_image: { type: String },
+    instituteId: { type: mongoose.Schema.Types.ObjectId, ref: 'Institute' }, // Added to link to the Institute
     resetPasswordToken: String,
     resetPasswordExpires: Number,
     otp: String,
@@ -23,7 +25,8 @@ const userSchema = new mongoose.Schema({
     testsTaken: [{
         testId: { type: mongoose.Schema.Types.ObjectId, ref: 'Test' },
         score: Number,
-    }]
+    }],
+    role: { type: String, default: 'student' } // Role field to differentiate users
 });
 
 // Pre-save middleware to hash passwords
@@ -45,3 +48,4 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
 
 const User = mongoose.model('User', userSchema);
 module.exports = User;
+
