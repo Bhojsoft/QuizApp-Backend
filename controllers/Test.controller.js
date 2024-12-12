@@ -4,6 +4,7 @@ const Admin = require('../models/admin');
 const Institute = require('../models/Institute'); // Import the Admin model to check the role
 const Question = require('../models/question.model.js');
 const Teacher = require('../models/teacher_model.js');
+const TestSubmission = require('../models/TestSubmissionmodel.js');
 
 
 exports.createTest = async (req, res) => {
@@ -346,6 +347,72 @@ exports.getTests = async (req, res) => {
       message: 'Error fetching tests',
       error: error.message,
     });
+  }
+};
+
+// submitTest
+exports.submitTest = async (req, res) => {
+  try {
+    const { testId } = req.params; // Extract testId from URL
+    const { answers } = req.body; // Extract answers array from request body
+    const { userId, role } = req.user; // Extract user details from authentication middleware
+
+    // Ensure the user is a student
+    if (role !== 'student') {
+      return res.status(403).json({ message: 'Only students can submit tests.' });
+    }
+
+    // Fetch the test by ID
+    const test = await Test.findById(testId).populate('questions');
+    if (!test) {
+      return res.status(404).json({ message: 'Test not found.' });
+    }
+
+    const { questions } = test;
+    if (answers.length !== questions.length) {
+      return res.status(400).json({
+        message: 'Number of answers does not match number of questions in the test.',
+      });
+    }
+
+    // Validate answers and calculate the score
+    let correctAnswers = 0;
+    const totalQuestions = questions.length;
+    const validatedAnswers = questions.map((question, index) => {
+      const isCorrect = question.correctAnswer === answers[index];
+      if (isCorrect) {
+        correctAnswers++;
+      }
+      return { question: question._id, answer: answers[index] };
+    });
+
+    // Calculate score
+    const score = (correctAnswers / totalQuestions) * 100;
+
+    // Save the test submission
+    const submission = new TestSubmission({
+      student: userId,
+      test: testId,
+      answers: validatedAnswers,
+      score,
+      totalQuestions,
+      correctAnswers,
+    });
+
+    await submission.save();
+
+    res.status(201).json({
+      message: 'Test submitted successfully.',
+      submission: {
+        testId,
+        totalQuestions,
+        correctAnswers,
+        score,
+      },
+    });
+  } catch (error) {
+    console.error('Error submitting test:', error);
+    res.status(400).json({ error: error.message });
   }
 };
 
