@@ -3,6 +3,7 @@ const Test = require('../models/Test');
 const Admin = require('../models/admin');
 const Institute = require('../models/Institute'); // Import the Admin model to check the role
 const Question = require('../models/question.model.js');
+const Teacher = require('../models/teacher_model.js');
 
 
 exports.createTest = async (req, res) => {
@@ -86,6 +87,52 @@ exports.createTest = async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 };
+
+exports.createTestByTeacher = async (req, res) => {
+  try {
+      const { title, subject, questions, startTime, duration, description, test_image, totalMarks, passingMarks, visibility } = req.body;
+
+      // Get the teacher's ID and institute from the request (assume req.user is populated by auth middleware)
+      const teacherId = req.user.userId;
+      const teacher = await Teacher.findById(teacherId);
+
+      if (!teacher) {
+          return res.status(404).json({ message: 'Teacher not found' });
+      }
+
+      // Ensure the teacher's institute is approved
+      const institute = await Institute.findById(teacher.institute);
+      if (!institute || !institute.isApproved) {
+          return res.status(403).json({ message: 'Institute not approved' });
+      }
+
+      // Create the test
+      const test = new Test({
+          title,
+          subject,
+          questions,
+          startTime,
+          duration,
+          description,
+          test_image,
+          totalMarks,
+          passingMarks,
+          visibility,
+          createdBy: teacher._id,
+          createdByRole: 'Teacher',
+          institute: teacher.institute,
+      });
+
+      await test.save();
+
+      res.status(201).json({ message: 'Test created successfully', test });
+  } catch (error) {
+      console.error('Error creating test:', error);
+      res.status(500).json({ message: 'Error creating test', error: error.message });
+  }
+};
+
+
 
 // exports.createTest = async (req, res) => {
 //   try {
@@ -274,6 +321,33 @@ exports.aggregateTestsByInstitute = async (req, res) => {
   }
 };
 
+
+exports.getTests = async (req, res) => {
+  try {
+    const userId = req.user.id; // Assuming you have user information from middleware
+    const userInstituteId = req.user.institute; // Assuming user's institute is part of the token or session
+
+    // Fetch tests based on visibility
+    const tests = await Test.find({
+      $or: [
+        { visibility: 'all' },
+        { visibility: 'institute', institute: userInstituteId },
+        { visibility: 'teacher', visibleTo: { $in: [userId] } },
+      ],
+    }).populate('questions'); // Optionally populate related data
+
+    // Send response
+    res.status(200).json({
+      message: 'Tests fetched successfully',
+      tests,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Error fetching tests',
+      error: error.message,
+    });
+  }
+};
 
 
 

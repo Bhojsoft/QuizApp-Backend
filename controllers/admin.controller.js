@@ -244,7 +244,7 @@ exports.loginAdmin = async (req, res) => {
       return jwt.sign(
         { userId: user._id, role: user.role }, // Ensure `user.role` is correctly set (e.g., 'main-admin' or 'sub-admin')
         JWT_SECRET,
-        { expiresIn: '1h' }
+        { expiresIn: '30d' }
       );
     };
 

@@ -842,4 +842,34 @@ exports.getTestCompletionPercentage = async (req, res) => {
 };
 
 
-
+exports.getAvailableTests = async (req, res) => {
+    try {
+      const userId = req.user.userId; // Access authenticated user ID from the request object
+  
+      // Find the user and populate the associated institute data
+      const user = await User.findById(userId).populate('instituteId');
+      if (!user) {
+        return res.status(404).json({ message: 'User not found.' });
+      }
+  
+      const instituteId = user.instituteId._id;
+  
+      // Fetch tests based on visibility and institute ID
+      const tests = await Test.find({
+        $or: [
+          { visibility: 'all' },
+          { visibility: 'institute', institute: instituteId }
+        ]
+      }).populate('questions');
+  
+      res.status(200).json({
+        message: 'Tests retrieved successfully',
+        tests,
+      });
+    } catch (error) {
+      console.error('Error fetching available tests:', error);
+      res.status(400).json({ error: error.message });
+    }
+  };
+  
+  

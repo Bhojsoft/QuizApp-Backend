@@ -8,7 +8,8 @@ const testSchema = new mongoose.Schema({
   questions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Question' }], 
   startTime: { type: Date, required: true },
   duration: { type: Number, required: true },
-  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', required: true },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  testsCreated: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Test' }],
   description: { type: String },
   test_image: { type: String },
   totalMarks: { type: Number },
@@ -17,7 +18,7 @@ const testSchema = new mongoose.Schema({
   views: { type: Number, default: 0 },
   visibility: {
     type: String,
-    enum: ['all', 'institute'],
+    enum: ['all', 'institute','Teacher'],
     default: 'all'
   },
  // Reference to Question model
@@ -25,6 +26,14 @@ const testSchema = new mongoose.Schema({
   visibleTo: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Users' }]
 }, {
   timestamps: true
+});
+
+// Middleware to increment views on a test fetch
+testSchema.post('findOne', function (doc) {
+  if (doc) {
+    doc.views += 1;
+    doc.save();
+  }
 });
 
 const Test = mongoose.model('Test', testSchema);

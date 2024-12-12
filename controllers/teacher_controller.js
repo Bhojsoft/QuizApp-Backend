@@ -2,54 +2,67 @@ const bcrypt = require('bcrypt');
 const Teacher = require('../models/teacher_model.js');
 const Institute = require('../models/Institute');
 const jwt = require('jsonwebtoken');
+const Test = require('../models/Test');
+const mongoose = require('mongoose');
+const Question = require('../models/question.model');
 
-// Register a teacher
+
+// Register a teacher  
 exports.registerTeacher = async (req, res) => {
-    try {
-      const { name, email, password, instituteId } = req.body;
-  
-      // Check if the institute exists and is approved
-      const institute = await Institute.findOne({ id: instituteId, isApproved: true });
-      if (!institute) {
-        return res.status(400).json({ message: 'Institute not found or not approved' });
-      }
-  
-      // Hash the password
-      const hashedPassword = await bcrypt.hash(password, 10);
-  
-      // Create a new teacher
-      const teacher = new Teacher({
-        name,
-        email,
-        password: hashedPassword,
-        institute: institute._id,
+  try {
+    const { name, email, password, instituteId, role } = req.body;
+
+    let institute;
+
+    if (mongoose.isValidObjectId(instituteId)) {
+      institute = await Institute.findOne({
+        _id: new mongoose.Types.ObjectId(instituteId),
+        isApproved: true,
       });
-  
-      // Save the teacher
-      const savedTeacher = await teacher.save();
-  
-      // Add the teacher to the institute's list
-      institute.teachers.push(savedTeacher._id);
-      await institute.save();
-  
-      // Generate a JWT token
-      const token = jwt.sign(
-        { userId: savedTeacher._id, email: savedTeacher.email },
-        process.env.JWT_SECRET, // Replace with your JWT secret key
-        { expiresIn: '1h' } // Token expiration time (e.g., 1 hour)
-      );
-  
-      // Send the response with the token
-      res.status(201).json({
-        message: 'Teacher registered successfully',
-        teacher: savedTeacher,
-        token: token, // Return the token
+    } else {
+      institute = await Institute.findOne({
+        id: instituteId,
+        isApproved: true,
       });
-    } catch (error) {
-      res.status(500).json({ message: 'Error registering teacher', error: error.message });
     }
-  };
-  
+    
+
+    if (!institute) {
+      return res.status(400).json({ message: 'Institute not found or not approved' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const teacher = new Teacher({
+      name,
+      email,
+      password: hashedPassword,
+      institute: institute._id,
+      role,
+    });
+
+    const savedTeacher = await teacher.save();
+
+    institute.teachers.push(savedTeacher._id);
+    await institute.save();
+
+    const token = jwt.sign(
+      { userId: savedTeacher._id, email: savedTeacher.email, role: savedTeacher.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    res.status(201).json({
+      message: 'Teacher registered successfully',
+      teacher: savedTeacher,
+      token,
+    });
+  } catch (error) {
+    console.error("Error registering teacher:", error.message);
+    res.status(500).json({ message: 'Error registering teacher', error: error.message });
+  }
+};
+
 
 
 // Login a teacher
@@ -70,11 +83,17 @@ exports.loginTeacher = async (req, res) => {
       }
   
       // Generate a JWT token
-      const token = jwt.sign(
-        { teacherId: teacher._id, instituteId: teacher.institute },
-        process.env.JWT_SECRET,
-        { expiresIn: '1d' } // Token expires in 1 day
-      );
+     // Update the token creation in loginTeacher to include role
+const token = jwt.sign(
+  {
+    teacherId: teacher._id,
+    instituteId: teacher.institute,
+    role: teacher.role, // Include the role in the token
+  },
+  process.env.JWT_SECRET,
+  { expiresIn: '30d' } // Token expires in 30 days
+);
+
   
       res.status(200).json({
         message: 'Login successful',
@@ -84,12 +103,14 @@ exports.loginTeacher = async (req, res) => {
           name: teacher.name,
           email: teacher.email,
           institute: teacher.institute,
+          role:teacher.role,
         },
       });
     } catch (error) {
       res.status(500).json({ message: 'Error during login', error: error.message });
     }
   };
+
 
   //Institue of teacher
   exports.getTeachersByInstitute = async (req, res) => { 
@@ -114,4 +135,103 @@ exports.loginTeacher = async (req, res) => {
         res.status(500).json({ message: 'Error fetching teachers', error: error.message });
     }
 };
+
+//create test by teacher
+exports.createTest = async (req, res) => {
+  try {
+    const {
+      title,
+      subject,
+      questions,
+      startTime,
+      duration,
+      createdBy, // ID of the teacher
+      class: testClass,
+      description,
+      totalMarks,
+      passingMarks,
+      sample_question,
+    } = req.body;
+
+    const { teacherId, role } = req.user; // Use `userId` and `role` from `req.user` set by the auth middleware
+    console.log('User role:', role);
+    console.log('Checking teacher with userId:', teacherId); // Debugging output
+
+    if (!mongoose.Types.ObjectId.isValid(teacherId)) {
+      return res.status(400).json({ message: 'Invalid user ID format.' });
+    }
+
+    const teacher = await Teacher.findById(teacherId);
+    if (!teacher) {
+      console.log('Teacher not found for userId:', teacherId); // Debugging output
+      return res.status(404).json({ message: 'Teacher not found.' });
+    }
+
+    // Log the teacher object to ensure it exists and is valid
+    console.log('Teacher object:', teacher);
+
+    // Validate the provided createdBy ID matches the logged-in teacher's ID
+    if (createdBy.toString() !== teacherId.toString()) {
+      return res.status(403).json({ message: 'Unauthorized: You cannot create a test for another teacher.' });
+    }
+
+    // Set default visibility and associate with the teacher
+    const visibility = 'institute';
+
+    // Save the questions to the database
+    const questionIds = [];
+    for (const question of questions) {
+      const savedQuestion = await new Question({
+        question: question.question,
+        options: question.options,
+        correctAnswer: question.correctAnswer,
+      }).save();
+      questionIds.push(savedQuestion._id);
+    }
+
+    // Create a new test and associate it with the teacher
+    const test = new Test({
+      title,
+      subject,
+      questions: questionIds, // Use saved question IDs
+      startTime,
+      duration,
+      createdBy,
+      class: testClass,
+      description,
+      totalMarks,
+      passingMarks,
+      sample_question,
+      visibility: 'institute', // Ensure institute visibility
+      institute: teacher.institute._id, // Restrict to the teacher
+      teacher: teacherId, // Associate the test with the logged-in teacher
+    });
+
+    // Save the test and update the teacher's testsCreated array
+    await test.save();
+
+    // Debug: Log teacher's testsCreated array before pushing
+    console.log('Teacher testsCreated before push:', teacher.testsCreated);
+
+    if (!teacher.testsCreated) {
+      teacher.testsCreated = []; // Ensure testsCreated is an array if it was not initialized
+    }
+    teacher.testsCreated.push(test._id);
+
+    // Save the updated teacher document
+    await teacher.save();
+
+    // Populate the questions to return the full data
+    const populatedTest = await Test.findById(test._id).populate('questions');
+
+    res.status(201).json({
+      message: 'Test created successfully',
+      test: populatedTest, // Return populated test with full question data
+    });
+  } catch (error) {
+    console.error('Error creating test:', error);
+    res.status(400).json({ error: error.message });
+  }
+};
+
 

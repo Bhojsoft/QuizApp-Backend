@@ -45,7 +45,7 @@ exports.createInstitute = async (req, res) => {
     const token = jwt.sign(
       { id: newInstitute._id, role: newInstitute.role },
       JWT_SECRET,
-      { expiresIn: '1h' }
+      { expiresIn: '30d' }
     );
 
     res.status(201).json({
@@ -85,7 +85,7 @@ exports.loginInstitute = async (req, res) => {
     }
 
     // Generate a token
-    const token = jwt.sign({ id: institute._id, role: 'institute' }, JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ id: institute._id, role: 'institute' }, JWT_SECRET, { expiresIn: '30d' });
 
     // Send response with token and institute details, including custom ID
     res.status(200).json({

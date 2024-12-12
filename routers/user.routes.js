@@ -79,4 +79,7 @@ router.get('/top-users', userController.getTopUsersByAverageScore);
 // Get test completion percentage for a user
 router.get('/test-completion', authenticate,userController.getTestCompletionPercentage);
 
+// Route to get available tests for the authenticated student
+router.get('/available-tests', authenticate, userController.getAvailableTests);
+
 module.exports = router;
