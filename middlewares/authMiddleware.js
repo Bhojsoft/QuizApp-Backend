@@ -49,48 +49,59 @@ const authenticate = async (req, res, next) => {
 // Middleware to verify if the token belongs to an authorized user and attach details
 const authenticateToken = async (req, res, next) => {
     try {
-        const authHeader = req.headers['authorization'];
-        if (!authHeader) {
-            return res.status(401).json({ message: 'Access denied: No authorization header provided' });
+      // Get the token from the authorization header
+      const authHeader = req.headers['authorization'];
+      if (!authHeader) {
+        return res.status(401).json({ message: 'Access denied: No authorization header provided' });
+      }
+  
+      const token = authHeader.split(' ')[1];
+      if (!token) {
+        return res.status(401).json({ message: 'Access denied: No token provided' });
+      }
+  
+      // Decode the token using your verifyToken function (assuming it returns a valid decoded object)
+      const decoded = await verifyToken(token);
+  
+      // Check the user's role and assign appropriate user data to req.user
+      if (decoded.role === 'institute') {
+        const institute = await Institute.findById(decoded.id);
+        if (!institute) {
+          return res.status(401).json({ message: 'Access denied: Invalid token' });
         }
-
-        const token = authHeader.split(' ')[1];
-        if (!token) {
-            return res.status(401).json({ message: 'Access denied: No token provided' });
+        // Attach both institute's ID and role for users with an institute role
+        req.user = { userId: institute._id, role: decoded.role, instituteId: institute._id };
+      } else if (['main-admin', 'sub-admin'].includes(decoded.role)) {
+        const admin = await Admin.findById(decoded.userId);
+        if (!admin) {
+          return res.status(401).json({ message: 'Access denied: Invalid token' });
         }
-
-        const decoded = await verifyToken(token);
-
-        // Verify the role and find the appropriate user
-        if (decoded.role === 'institute') {
-            const institute = await Institute.findById(decoded.id);
-            if (!institute) {
-                return res.status(401).json({ message: 'Access denied: Invalid token' });
-            }
-            req.user = { userId: institute._id, role: decoded.role };
-        } else if (['main-admin', 'sub-admin'].includes(decoded.role)) {
-            const admin = await Admin.findById(decoded.userId);
-            if (!admin) {
-                return res.status(401).json({ message: 'Access denied: Invalid token' });
-            }
-            req.user = { userId: admin._id, role: decoded.role };
-        } else if (decoded.role === 'teacher') {
-            const teacher = await Teacher.findById(decoded.id);
-            if (!teacher) {
-                return res.status(401).json({ message: 'Access denied: Invalid token' });
-            }
-            req.user = { userId: teacher._id, role: decoded.role };
-        } else {
-            return res.status(403).json({ message: 'Forbidden: Invalid role' });
+        req.user = { userId: admin._id, role: decoded.role };
+      } else if (decoded.role === 'teacher') {
+        const teacher = await Teacher.findById(decoded.id);
+        if (!teacher) {
+          return res.status(401).json({ message: 'Access denied: Invalid token' });
         }
-
-        next();
+        req.user = { userId: teacher._id, role: decoded.role };
+      } else if (decoded.role === 'institute-admin') {
+        // If the role is 'institute-admin', find the associated institute for the admin
+        const instituteAdmin = await Institute.findById(decoded.id);
+        if (!instituteAdmin) {
+          return res.status(401).json({ message: 'Access denied: Invalid token' });
+        }
+        req.user = { userId: instituteAdmin._id, role: decoded.role, instituteId: instituteAdmin._id };
+      } else {
+        // Role doesn't match expected ones, deny access
+        return res.status(403).json({ message: 'Forbidden: Invalid role' });
+      }
+  
+      next();
     } catch (error) {
-        console.error('Authentication error:', error);
-        res.status(500).json({ message: 'Internal server error', error: error.message });
+      console.error('Authentication error:', error);
+      res.status(500).json({ message: 'Internal server error', error: error.message });
     }
-};
-
+  };
+  
 
 
 // Middleware to authenticate and check user role

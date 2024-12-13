@@ -25,7 +25,6 @@ exports.registerTeacher = async (req, res) => {
         isApproved: true,
       });
     }
-    
 
     if (!institute) {
       return res.status(400).json({ message: 'Institute not found or not approved' });
@@ -39,6 +38,7 @@ exports.registerTeacher = async (req, res) => {
       password: hashedPassword,
       institute: institute._id,
       role,
+      isApproved: false, // Default to false during registration
     });
 
     const savedTeacher = await teacher.save();
@@ -54,7 +54,14 @@ exports.registerTeacher = async (req, res) => {
 
     res.status(201).json({
       message: 'Teacher registered successfully',
-      teacher: savedTeacher,
+      teacher: {
+        id: savedTeacher._id,
+        name: savedTeacher.name,
+        email: savedTeacher.email,
+        isApproved: savedTeacher.isApproved,
+        institute: savedTeacher.institute,
+        role: savedTeacher.role,
+      },
       token,
     });
   } catch (error) {
@@ -67,49 +74,63 @@ exports.registerTeacher = async (req, res) => {
 
 // Login a teacher
 exports.loginTeacher = async (req, res) => {
-    try {
-      const { email, password } = req.body;
-  
-      // Check if the teacher exists
-      const teacher = await Teacher.findOne({ email });
-      if (!teacher) {
-        return res.status(404).json({ message: 'Teacher not found' });
-      }
-  
-      // Verify the password
-      const isPasswordValid = await bcrypt.compare(password, teacher.password);
-      if (!isPasswordValid) {
-        return res.status(401).json({ message: 'Invalid credentials' });
-      }
-  
-      // Generate a JWT token
-     // Update the token creation in loginTeacher to include role
-const token = jwt.sign(
-  {
-    teacherId: teacher._id,
-    instituteId: teacher.institute,
-    role: teacher.role, // Include the role in the token
-  },
-  process.env.JWT_SECRET,
-  { expiresIn: '30d' } // Token expires in 30 days
-);
+  try {
+    const { email, password } = req.body;
 
-  
-      res.status(200).json({
-        message: 'Login successful',
-        token,
-        teacher: {
-          id: teacher._id,
-          name: teacher.name,
-          email: teacher.email,
-          institute: teacher.institute,
-          role:teacher.role,
-        },
-      });
-    } catch (error) {
-      res.status(500).json({ message: 'Error during login', error: error.message });
+    // Check if the teacher exists
+    const teacher = await Teacher.findOne({ email }).populate('institute');
+    if (!teacher) {
+      return res.status(404).json({ message: 'Teacher not found' });
     }
-  };
+
+    // Verify the associated institute is approved
+    if (!teacher.institute || !teacher.institute.isApproved) {
+      return res.status(403).json({
+        message: 'Institute not approved. Please contact your administrator.',
+      });
+    }
+
+    // Verify the teacher's approval status
+    if (!teacher.isApproved) {
+      return res.status(403).json({
+        message: 'Teacher account not approved. Please contact your institute.',
+      });
+    }
+
+    // Verify the password
+    const isPasswordValid = await bcrypt.compare(password, teacher.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // Generate a JWT token
+    const token = jwt.sign(
+      {
+        teacherId: teacher._id,
+        instituteId: teacher.institute._id,
+        role: teacher.role,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    res.status(200).json({
+      message: 'Login successful',
+      token,
+      teacher: {
+        id: teacher._id,
+        name: teacher.name,
+        email: teacher.email,
+        isApproved: teacher.isApproved,
+        institute: teacher.institute._id,
+        role: teacher.role,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error during login', error: error.message });
+  }
+};
+
 
 
   //Institue of teacher

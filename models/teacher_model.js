@@ -6,7 +6,10 @@ const teacherSchema = new mongoose.Schema({
   password: { type: String, required: true },
   institute: { type: mongoose.Schema.Types.ObjectId, ref: 'Institute', required: true },
   role: { type: String, default: 'Teacher' },
+  isApproved: { type: Boolean, default: false },
 });
 
+
 module.exports = mongoose.model('Teacher', teacherSchema);
+
 

@@ -19,6 +19,8 @@ const instituteControl = require('../controllers/Institutes_contoller.js');
 const multer = require('multer');
 const upload = require('../middlewares/multerConfig');
 const instituteControllertest = require('../controllers/Institutes_contoller.js'); 
+const { approveTeacher } = require('../controllers/Institutes_contoller.js');
+
 
 
 // Protect routes with the authentication middleware
@@ -44,6 +46,15 @@ router.get('/institute/:instituteId/students', instituteControl.getStudentsByIns
 
 //Route to get test details for a specific institute
 router.get('/institute/:instituteId/tests', instituteControllertest.aggregateTestsByInstitute);
+
+// Approve teacher route
+router.put('/approve-teacher', authenticateToken, approveTeacher);
+
+
+
+
+
+
 
 
 

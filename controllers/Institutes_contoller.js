@@ -9,6 +9,7 @@ const User = require('../models/user.model.js');
 const mongoose = require('mongoose');
 const Question = require('../models/question.model');
 const TestSubmission = require('../models/TestSubmissionmodel.js');
+const Teacher = require('../models/teacher_model.js');
 
 
 
@@ -108,7 +109,7 @@ exports.loginInstitute = async (req, res) => {
 
 
 
-// Create a test
+
 // Create a test associated with an institute
 exports.createTest = async (req, res) => {
   try {
@@ -136,21 +137,21 @@ exports.createTest = async (req, res) => {
     const visibility = 'institute';
 
     // Save the questions to the database
-    const questionIds = [];
+    const savedQuestions = [];
     for (const question of questions) {
       const savedQuestion = await new Question({
         question: question.question,
         options: question.options,
         correctAnswer: question.correctAnswer,
       }).save();
-      questionIds.push(savedQuestion._id);
+      savedQuestions.push(savedQuestion); // Store the complete question objects
     }
 
     // Create a new test
     const test = new Test({
       title,
       subject,
-      questions: questionIds, // Use saved question IDs
+      questions: savedQuestions.map((q) => q._id), // Use saved question IDs
       startTime,
       duration,
       createdBy,
@@ -170,12 +171,13 @@ exports.createTest = async (req, res) => {
     institute.testsCreated.push(test._id);
     await institute.save();
 
-    // Populate the questions to return the full data
-    const populatedTest = await Test.findById(test._id).populate('questions');
-
+    // Respond with the test and full question data
     res.status(201).json({
       message: 'Test created successfully',
-      test: populatedTest, // Return populated test with full question data
+      test: {
+        ...test.toObject(), // Convert the test document to a plain object
+        questions: savedQuestions, // Include the full question data
+      },
     });
   } catch (error) {
     console.error('Error creating test:', error);
@@ -318,52 +320,56 @@ exports.aggregateTestsByInstitute = async (req, res) => {
   try {
     const { instituteId } = req.params;
 
-    // Check if the provided ID is a valid ObjectId
+    // Validate ObjectId format
     if (!mongoose.Types.ObjectId.isValid(instituteId)) {
       return res.status(400).json({ error: "Invalid institute ID format" });
     }
 
-    // Use mongoose.Types.ObjectId correctly
     const objectId = new mongoose.Types.ObjectId(instituteId);
 
-    // Log for debugging
     console.log('Received instituteId:', instituteId);
 
     const results = await Test.aggregate([
       {
         $match: {
-          createdBy: objectId, // Use the correctly created ObjectId here
-          visibility: "institute"
-        }
+          createdBy: objectId,
+          visibility: "institute",
+        },
       },
       {
         $lookup: {
           from: "institutes",
           localField: "createdBy",
           foreignField: "_id",
-          as: "instituteDetails"
-        }
+          as: "instituteDetails",
+        },
+      },
+      {
+        $lookup: {
+          from: "questions", // Assuming your question collection is named "questions"
+          localField: "questions",
+          foreignField: "_id",
+          as: "questionDetails",
+        },
       },
       {
         $unwind: {
           path: "$instituteDetails",
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $project: {
-          _id: 0, // Exclude the default _id field
-          title: 1, // Include the title of the test
-          subject: 1, // Include the subject of the test
-          questions: 1, // Include the questions field (if needed)
-          createdBy: 1, // Include the ID of the creator (optional)
-          instituteName: "$instituteDetails.name", // Include the name of the institute
-          // Add any other fields you need to include in the response
-        }
-      }
+          _id: 0,
+          title: 1,
+          subject: 1,
+          questions: "$questionDetails", // Replace question IDs with full question details
+          createdBy: 1,
+          instituteName: "$instituteDetails.name",
+        },
+      },
     ]);
 
-    // Log the aggregation result for debugging
     console.log('Aggregation results:', results);
 
     if (results.length === 0) {
@@ -374,6 +380,98 @@ exports.aggregateTestsByInstitute = async (req, res) => {
   } catch (error) {
     console.error('Error in aggregateTestsByInstitute:', error);
     res.status(500).json({ error: error.message });
+  }
+};
+
+//Institute approve teacher 
+ 
+exports.approveTeacher = async (req, res) => {
+  try {
+    const { teacherId } = req.body;
+
+    // Log user details for debugging
+    console.log(req.user);
+
+    // Verify that the user has the correct role (changed from 'institute-admin' to 'institute')
+    if (req.user.role !== 'institute') {
+      return res.status(403).json({ message: 'Permission denied' });
+    }
+
+    // Find the teacher by ID
+    const teacher = await Teacher.findById(teacherId).populate('institute');
+    if (!teacher) {
+      return res.status(404).json({ message: 'Teacher not found' });
+    }
+
+    // Check if the teacher's institute matches the admin's institute
+    if (!teacher.institute || !teacher.institute.equals(req.user.instituteId)) {
+      return res.status(403).json({ message: 'Permission denied. You cannot approve this teacher.' });
+    }
+
+    // Approve the teacher
+    teacher.isApproved = true;
+    await teacher.save();
+
+    res.status(200).json({ message: 'Teacher approved successfully', teacher });
+  } catch (error) {
+    console.error(error);  // Log the error for debugging purposes
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+const authenticateToken = async (req, res, next) => {
+  try {
+    // Get the token from the authorization header
+    const authHeader = req.headers['authorization'];
+    if (!authHeader) {
+      return res.status(401).json({ message: 'Access denied: No authorization header provided' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ message: 'Access denied: No token provided' });
+    }
+
+    // Decode the token using your verifyToken function (assuming it returns a valid decoded object)
+    const decoded = await verifyToken(token);
+
+    // Check the user's role and assign appropriate user data to req.user
+    if (decoded.role === 'institute') {
+      const institute = await Institute.findById(decoded.id);
+      if (!institute) {
+        return res.status(401).json({ message: 'Access denied: Invalid token' });
+      }
+      // Attach both institute's ID and role for users with an institute role
+      req.user = { userId: institute._id, role: decoded.role, instituteId: institute._id };
+    } else if (['main-admin', 'sub-admin'].includes(decoded.role)) {
+      const admin = await Admin.findById(decoded.userId);
+      if (!admin) {
+        return res.status(401).json({ message: 'Access denied: Invalid token' });
+      }
+      req.user = { userId: admin._id, role: decoded.role };
+    } else if (decoded.role === 'teacher') {
+      const teacher = await Teacher.findById(decoded.id);
+      if (!teacher) {
+        return res.status(401).json({ message: 'Access denied: Invalid token' });
+      }
+      req.user = { userId: teacher._id, role: decoded.role };
+    } else if (decoded.role === 'institute-admin') {
+      // If the role is 'institute-admin', find the associated institute for the admin
+      const instituteAdmin = await Institute.findById(decoded.id);
+      if (!instituteAdmin) {
+        return res.status(401).json({ message: 'Access denied: Invalid token' });
+      }
+      req.user = { userId: instituteAdmin._id, role: decoded.role, instituteId: instituteAdmin._id };
+    } else {
+      // Role doesn't match expected ones, deny access
+      return res.status(403).json({ message: 'Forbidden: Invalid role' });
+    }
+
+    next();
+  } catch (error) {
+    console.error('Authentication error:', error);
+    res.status(500).json({ message: 'Internal server error', error: error.message });
   }
 };
 

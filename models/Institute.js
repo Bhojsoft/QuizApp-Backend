@@ -23,5 +23,6 @@ const instituteSchema = new mongoose.Schema({
   }
 });
 
+
 // Export the Institute model with the custom `id` field
 module.exports = mongoose.model('Institute', instituteSchema);
