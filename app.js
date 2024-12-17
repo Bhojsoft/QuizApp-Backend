@@ -6,6 +6,7 @@ const adminRouter = require("./routers/admin.router");
 const practicetestRouter = require("./routers/practicetest.router");
 const instituteRoutes = require("./routers/Institutes_routes"); 
 const teacherRoutes = require('./routers/Teacher.js');
+const collegesRoute = require('./routers/colleges');
 require("dotenv").config();
 
 const bodyparser = require("body-parser");
@@ -33,7 +34,7 @@ app.use("/review", reviewRoute);
 app.use("/api/institute", instituteRoutes);
 app.use('/api/teachers', teacherRoutes);
 
-
+app.use(collegesRoute);
 
 
 const globalSearch = require("./routers/serach.router");

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middlewares/authMiddleware');
 const { authenticate, authenticateRole } = require('../middlewares/authMiddleware'); 
+const Institute = require('../models/Institute');
 // Adjust the path as needed
 
 const {
@@ -50,7 +51,16 @@ router.get('/institute/:instituteId/tests', instituteControllertest.aggregateTes
 // Approve teacher route
 router.put('/approve-teacher', authenticateToken, approveTeacher);
 
-
+// GET all institutes (only name and id)
+router.get('/api/institutes', async (req, res) => {
+  try {
+      const institutes = await Institute.find({}, { id: 1, name: 1 });  // Only fetch id and name fields
+      res.status(200).json(institutes);
+  } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: 'Error fetching institutes.' });
+  }
+});
 
 
 

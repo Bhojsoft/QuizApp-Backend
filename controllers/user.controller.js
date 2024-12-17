@@ -50,6 +50,7 @@ exports.getTestCountBySubject = async (req, res) => {
     }
 };
 
+
 // Controller to get topics and quizzes by subject name
 exports.getTopicsAndQuizzesBySubject = async (req, res) => {
     try {
@@ -131,7 +132,7 @@ exports.getTest = async (req, res) => {
 
 
 
-// Get a specific test Quiz
+// Get a specific test Quiz  
 exports.getTestQuiz = async (req, res) => {
     try {
         const testId = req.params.id;
@@ -262,6 +263,7 @@ exports.getPracticeTestsBySubject = async (req, res) => {
 };
 
 
+
 // Calculate and Display Practice Test Score
 exports.calculatePracticeTestScore = async (req, res) => {
     const baseUrl = req.protocol + "://" + req.get("host");
@@ -353,12 +355,12 @@ exports.registerUser = async (req, res) => {
         // Save the user
         await user.save();
 
-        // Add the student to the institute's list of students
+        // Add the student to the institute's list of students 
         institute.students.push(user._id);
         await institute.save();
 
         // Generate JWT token
-        const token = jwt.sign({ userId: user._id, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
+        const token = jwt.sign({ userId: user._id, role: user.role }, JWT_SECRET, { expiresIn: '30d' });
 
         res.status(201).json({ token, message: 'Registration successful!' });
     } catch (err) {
@@ -390,9 +392,9 @@ exports.loginUser = async (req, res) => {
         }
 
         // Generate JWT token with the user ID and role
-        const token = jwt.sign({ userId: user._id, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
+        const token = jwt.sign({ userId: user._id, role: user.role }, JWT_SECRET, { expiresIn: '30d' });
 
-        // Create a notification for successful login
+        // Create a notification for successful login  
         const notification = new notificationModel({
             recipient: user._id,
             studentName: user.name,
@@ -765,7 +767,7 @@ exports.getAllTests = async (req, res) => {
 
 
 
-// Controller to filter users by average test scores
+// Controller to filter users by average test score
 exports.getTopUsersByAverageScore = async (req, res) => {
     try {
         // Find all users and calculate the average test score from testsTaken
@@ -809,13 +811,13 @@ exports.getTestCompletionPercentage = async (req, res) => {
     try {
         // const { userId } = req.params;
         const userId = req.user.userId;
-        // Find the user by ID
+        // Find the user by ID 
         const user = await User.findById(userId).populate('testsTaken.testId');
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        // Get the total number of available tests
+        // Get the total number of available  tests  
         const totalTests = await Test.countDocuments();
         if (totalTests === 0) {
             return res.status(200).json({ message: 'No tests available.', completionPercentage: 0 });

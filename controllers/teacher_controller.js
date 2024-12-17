@@ -32,6 +32,7 @@ exports.registerTeacher = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    
     const teacher = new Teacher({
       name,
       email,
