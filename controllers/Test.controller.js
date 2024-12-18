@@ -421,18 +421,26 @@ exports.getTestById = async (req, res) => {
   const { id } = req.params;
 
   try {
-      // Fetch the test by ID
-      const test = await Test.findById(id);
+      // Increment the views and return specific fields.
+      const test = await Test.findByIdAndUpdate(
+          id,
+          { $inc: { views: 1 } }, // Increment the views field.
+          { new: true, select: 'title testId test_image' } // Select only specific fields.
+      );
+
       if (!test) {
           return res.status(404).json({ error: "Test not found" });
       }
 
-      // Increment views count
-      test.views += 1;
-      await test.save();
+      // Customize the response data.
+      const response = {
+          title: test.title,
+          image: test.test_image || 'assets/images/Photo UI.png', // Default image fallback.
+          testId: test._id, // Use the `_id` field for `testId`.
+      };
 
-      // Send the test data as a response
-      res.json(test);
+      // Send the customized test data as a response.
+      res.json(response);
   } catch (error) {
       console.error(`Error fetching test details for ID ${id}:`, error);
       res.status(500).json({ error: "Error fetching test details" });

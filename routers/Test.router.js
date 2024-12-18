@@ -38,6 +38,6 @@ router.post('/:testId/submit', authenticate, submitTest);
 //router.post('/teacher/create', verifyToken, createTestByTeacher);
 
 //Method to fetch a specific test by ID
-router.get('/testById', getTestById);
+router.get('/testById/:id', getTestById);
 
 module.exports = router;
