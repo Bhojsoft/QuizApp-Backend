@@ -64,10 +64,6 @@ router.get('/api/institutes', async (req, res) => {
 
 
 
-
-
-
-
  // Create a new test
 // router.get('/', authenticateToken, getTests); // Get all approved tests
 // router.get('/:id', authenticateToken, getTestById); // Get test by ID

@@ -155,21 +155,21 @@ exports.createTestByTeacher = async (req, res) => {
 //   }
 // };
 
-exports.getTestById = async (req, res) => {
-  try {
-    const test = await Test.findById(req.params.id)
-                            .populate('questions'); // Populate the questions field
+// exports.getTestById = async (req, res) => {
+//   try {
+//     const test = await Test.findById(req.params.id)
+//                             .populate('questions'); // Populate the questions field
 
-    if (!test) {
-      return res.status(404).json({ error: 'Test not found' });
-    }
+//     if (!test) {
+//       return res.status(404).json({ error: 'Test not found' });
+//     }
 
-    res.status(200).json(test);
-  } catch (error) {
-    console.error('Error retrieving test:', error);
-    res.status(400).json({ error: error.message });
-  }
-};
+//     res.status(200).json(test);
+//   } catch (error) {
+//     console.error('Error retrieving test:', error);
+//     res.status(400).json({ error: error.message });
+//   }
+// };
 
 
 async function getTestWithQuestions(testId) {
@@ -196,23 +196,23 @@ exports.getTests = async (req, res) => {
 };
 
 
-// Get a Test by ID
-exports.getTestById = async (req, res) => {
-  try {
-    const { id } = req.params;
+// // Get a Test by ID
+// exports.getTestById = async (req, res) => {
+//   try {
+//     const { id } = req.params;
 
-    // Find the test by ID
-    const test = await Test.findById(id); 
+//     // Find the test by ID
+//     const test = await Test.findById(id); 
 
-    if (!test) {
-      return res.status(404).json({ message: 'Test not found' });
-    }
+//     if (!test) {
+//       return res.status(404).json({ message: 'Test not found' });
+//     }
 
-    res.status(200).json(test);
-  } catch (error) {
-    res.status(500).json({ message: 'Error retrieving test', error });
-  }
-};
+//     res.status(200).json(test);
+//   } catch (error) {
+//     res.status(500).json({ message: 'Error retrieving test', error });
+//   }
+// };
 
 
 
@@ -416,6 +416,28 @@ exports.submitTest = async (req, res) => {
   }
 };
 
+// // Controller function to fetch test details by ID
+exports.getTestById = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+      // Fetch the test by ID
+      const test = await Test.findById(id);
+      if (!test) {
+          return res.status(404).json({ error: "Test not found" });
+      }
+
+      // Increment views count
+      test.views += 1;
+      await test.save();
+
+      // Send the test data as a response
+      res.json(test);
+  } catch (error) {
+      console.error(`Error fetching test details for ID ${id}:`, error);
+      res.status(500).json({ error: "Error fetching test details" });
+  }
+};
 
 
 // Top picks test 

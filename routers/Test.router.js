@@ -7,6 +7,7 @@ const Question = require('../models/question.model');
 const { createTestByTeacher } = require('../controllers/Test.controller.js');
 const { verifyToken } = require('../middlewares/authMiddleware');
 const { submitTest } = require('../controllers/Test.controller');
+const { getTestById } = require('../controllers/Test.controller');
 const instituteController = require('../controllers/Institutes_contoller.js'); // Adjust the path as needed
 
 
@@ -36,5 +37,7 @@ router.post('/:testId/submit', authenticate, submitTest);
 // Endpoint to create a test
 //router.post('/teacher/create', verifyToken, createTestByTeacher);
 
+//Method to fetch a specific test by ID
+app.use('/testById', getTestById);
 
 module.exports = router;
